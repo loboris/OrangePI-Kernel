@@ -1,0 +1,45 @@
+#
+# ARM CPU Idle drivers
+#
+
+config ARM_BIG_LITTLE_CPUIDLE
+	bool "Support for ARM big.LITTLE processors"
+	depends on ARCH_VEXPRESS_TC2_PM
+	select ARM_CPU_SUSPEND
+	select CPU_IDLE_MULTIPLE_DRIVERS
+	help
+	  Select this option to enable CPU idle driver for big.LITTLE based
+	  ARM systems. Driver manages CPUs coordination through MCPM and
+	  define different C-states for little and big cores through the
+	  multiple CPU idle drivers infrastructure.
+
+config ARM_SUNXI_CPUIDLE
+	bool "CPU Idle Driver for SUNXI"
+	depends on ARCH_SUNXI && EVB_PLATFORM
+	default y
+	help
+	  Select this to enable cpuidle on sunxi platform.
+
+config DRAM_SELFREFLASH_IN_CPUIDLE
+	bool "Use dram self-reflash when all cpus in idle"
+	depends on ARM_SUNXI_CPUIDLE
+	depends on HAS_EARLYSUSPEND
+	default n
+	help
+	  Select this to use dram self-reflash when all cpus in idle status.
+	  This option can reduce system power consume in some scene.
+
+config IDLE_FETCH
+	bool "Calculate the cpuidle time of cpu0"
+	depends on ARM_SUNXI_CPUIDLE
+	default n
+	help
+	  Select this to calculate the time that cpu0 stay in each idle state.
+	  User can read as sys/kernel/debug/idle_fetch.
+
+config ARM_SUN8IW6_CPUIDLE
+	bool "CPU Idle Driver for SUN8IW6"
+	depends on ARCH_SUN8IW6 && EVB_PLATFORM
+	default n
+	help
+	  Select this to enable cpuidle on sun8iw6 platform.

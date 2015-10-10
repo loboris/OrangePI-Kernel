@@ -1,0 +1,392 @@
+#!/bin/sh
+
+echo "Loading, please wait..."
+
+# Default PATH differs between shells, and is not automatically exported
+# by klibc dash.  Make it consistent.
+export PATH=/sbin:/usr/sbin:/bin:/usr/bin
+
+[ -d /dev ] || mkdir -m 0755 /dev
+[ -d /root ] || mkdir -m 0700 /root
+[ -d /sys ] || mkdir /sys
+[ -d /proc ] || mkdir /proc
+[ -d /tmp ] || mkdir /tmp
+mkdir -p /var/lock
+mount -t sysfs -o nodev,noexec,nosuid sysfs /sys
+mount -t proc -o nodev,noexec,nosuid proc /proc
+
+# Note that this only becomes /dev on the real filesystem if udev's scripts
+# are used; which they will be, but it's worth pointing out
+tmpfs_size="10M"
+if [ -e /etc/udev/udev.conf ]; then
+	. /etc/udev/udev.conf
+fi
+if ! mount -t devtmpfs -o size=$tmpfs_size,mode=0755 udev /dev; then
+	echo "W: devtmpfs not available, falling back to tmpfs for /dev"
+	mount -t tmpfs -o size=$tmpfs_size,mode=0755 udev /dev
+	[ -e /dev/console ] || mknod -m 0600 /dev/console c 5 1
+	[ -e /dev/null ] || mknod /dev/null c 1 3
+fi
+mkdir /dev/pts
+mount -t devpts -o noexec,nosuid,gid=5,mode=0620 devpts /dev/pts || true
+mount -t tmpfs -o "nosuid,size=20%,mode=0755" tmpfs /run
+mkdir -m 0755 /run/initramfs
+
+# Export the dpkg architecture
+export DPKG_ARCH=
+. /conf/arch.conf
+
+# Set modprobe env
+export MODPROBE_OPTIONS="-qb"
+
+# Export relevant variables
+export ROOT=
+export XROOT=
+export ROOTDELAY=
+export ROOTFLAGS=
+export ROOTFSTYPE=
+export IP=
+export BOOT=
+export BOOTIF=
+export UBIMTD=
+export break=
+export init=/sbin/init
+export quiet=n
+export readonly=y
+export rootmnt=/root
+export debug=
+export panic=
+export blacklist=
+export resume=
+export resume_offset=
+export drop_caps=
+export fastboot=n
+export forcefsck=n
+export fsckfix=n
+
+
+# Bring in the main config
+. /conf/initramfs.conf
+for conf in conf/conf.d/*; do
+	[ -f ${conf} ] && . ${conf}
+done
+. /scripts/functions
+
+
+while true; do
+	if [ -b /dev/mmcblk0p1 ]; then
+		break
+	fi  
+	/bin/sleepx 1
+done
+
+_tmo=4
+while [ $_tmo -gt 0 ]; do
+	if [ -b /dev/sda ] || [ -b /dev/sdb ] || [ -b /dev/sdc ]; then
+		break
+	fi  
+	/bin/sleepx 1
+    let _tmo=_tmo-1
+done
+
+export _CMDLINE=$(cat /proc/cmdline)
+export _commandline=$(cat /proc/cmdline)
+
+mkdir /_mnt
+mount /dev/mmcblk0p1 /_mnt
+
+if [ -f /_mnt/cmdline.txt ]; then
+    cmdfile="/_mnt/cmdline.txt"
+    _commandline=$(cat "$cmdfile")
+    echo "CMDLINE: ${_commandline}"
+fi
+
+# Parse command line options
+for x in $_commandline; do
+	case $x in
+	init=*)
+		init=${x#init=}
+		;;
+	root=*)
+		ROOT=${x#root=}
+        XROOT="$ROOT"
+		ROOT=$(resolve_device "$ROOT")
+		if [ -z "${BOOT}" ] && [ "$ROOT" = "/dev/nfs" ]; then
+			BOOT=nfs
+		fi
+                ;;
+	rootflags=*)
+		ROOTFLAGS="-o ${x#rootflags=}"
+		;;
+	rootfstype=*)
+		ROOTFSTYPE="${x#rootfstype=}"
+		;;
+	rootdelay=*)
+		ROOTDELAY="${x#rootdelay=}"
+		case ${ROOTDELAY} in
+		*[![:digit:].]*)
+			ROOTDELAY=
+			;;
+		esac
+		;;
+	nfsroot=*)
+		NFSROOT="${x#nfsroot=}"
+		;;
+	ip=*)
+		IP="${x#ip=}"
+		;;
+	boot=*)
+		BOOT=${x#boot=}
+		;;
+	ubi.mtd=*)
+		UBIMTD=${x#ubi.mtd=}
+		;;
+	resume=*)
+		RESUME="${x#resume=}"
+		case $RESUME in
+	        UUID=*)
+			RESUME="/dev/disk/by-uuid/${RESUME#UUID=}"
+		esac
+		;;
+	resume_offset=*)
+		resume_offset="${x#resume_offset=}"
+		;;
+	noresume)
+		noresume=y
+		;;
+	drop_capabilities=*)
+		drop_caps="-d ${x#drop_capabilities=}"
+		;;
+	panic=*)
+		panic="${x#panic=}"
+		case ${panic} in
+		*[![:digit:].]*)
+			panic=
+			;;
+		esac
+		;;
+	quiet)
+		quiet=y
+		;;
+	ro)
+		readonly=y
+		;;
+	rw)
+		readonly=n
+		;;
+	debug)
+		debug=y
+		quiet=n
+		exec >/run/initramfs/initramfs.debug 2>&1
+		set -x
+		;;
+	debug=*)
+		debug=y
+		quiet=n
+		set -x
+		;;
+	break=*)
+		break=${x#break=}
+		;;
+	break)
+		break=premount
+		;;
+	blacklist=*)
+		blacklist=${x#blacklist=}
+		;;
+	netconsole=*)
+		netconsole=${x#netconsole=}
+		;;
+	BOOTIF=*)
+		BOOTIF=${x#BOOTIF=}
+		;;
+	fastboot)
+		fastboot=y
+		;;
+	forcefsck)
+		forcefsck=y
+		;;
+	fsckfix)
+		fsckfix=y
+		;;
+	esac
+done
+
+# Default rboot device
+if [ "${ROOT}" = "" ]; then
+    ROOT="/dev/mmcblk0p2"
+fi
+
+_tmo=4
+while [ $_tmo -gt 0 ]; do
+	if [ -e $ROOT ]; then
+        let _tmo=_tmo+1
+		break
+	fi  
+	/bin/sleepx 1
+    let _tmo=_tmo-1
+done
+if [ $_tmo -eq 0 ]; then
+    ROOT="/dev/mmcblk0p2"
+fi
+
+
+# Default to BOOT=local if no boot script defined.
+if [ -z "${BOOT}" ]; then
+	BOOT=local
+fi
+
+if [ -n "${noresume}" ]; then
+	export noresume
+	unset resume
+else
+	resume=${RESUME:-}
+fi
+
+maybe_break top
+
+# Don't do log messages here to avoid confusing graphical boots
+run_scripts /scripts/init-top
+
+maybe_break modules
+[ "$quiet" != "y" ] && log_begin_msg "Loading essential drivers"
+load_modules
+[ "$quiet" != "y" ] && log_end_msg
+
+[ -n "${netconsole}" ] && modprobe netconsole netconsole="${netconsole}"
+
+maybe_break premount
+[ "$quiet" != "y" ] && log_begin_msg "Running /scripts/init-premount"
+run_scripts /scripts/init-premount
+[ "$quiet" != "y" ] && log_end_msg
+
+
+maybe_break mount
+log_begin_msg "Mounting root file system"
+# Always load local and nfs (since these might be needed for /etc or
+# /usr, irrespective of the boot script used to mount the rootfs).
+. /scripts/local
+. /scripts/nfs
+. /scripts/${BOOT}
+parse_numeric ${ROOT}
+maybe_break mountroot
+mount_top
+mount_premount
+mountroot
+log_end_msg
+
+validate_init() {
+	checktarget="${1}"
+
+	# Work around absolute symlinks
+	if [ -d "${rootmnt}" ] && [ -h "${rootmnt}${checktarget}" ]; then
+		checktarget="$(readlink "${rootmnt}${checktarget}")"
+		case "$checktarget" in
+		/*)
+			;;
+		*)
+			checktarget="${1%/*}/$checktarget"
+			;;
+		esac
+	fi
+
+	# Make sure the specified init can be executed
+	if [ ! -x "${rootmnt}${checktarget}" ]; then
+		return 1
+	fi
+
+	# Upstart uses /etc/init as configuration directory :-/
+	if [ -d "${rootmnt}${checktarget}" ]; then
+		return 1
+	fi
+}
+
+# Check init is really there
+if ! validate_init "$init"; then
+	echo "Target filesystem doesn't have requested ${init}."
+	init=
+	for inittest in /sbin/init /etc/init /bin/init /bin/sh; do
+		if validate_init "${inittest}"; then
+			init="$inittest"
+			break
+		fi
+	done
+fi
+
+# Mount /usr only if init is systemd (after reading symlink)
+if [ "${checktarget##*/}" = systemd ] && read_fstab_entry /usr; then
+	log_begin_msg "Mounting /usr file system"
+	mountfs /usr
+	log_end_msg
+fi
+
+# Mount cleanup
+mount_bottom
+nfs_bottom
+local_bottom
+
+maybe_break bottom
+[ "$quiet" != "y" ] && log_begin_msg "Running /scripts/init-bottom"
+run_scripts /scripts/init-bottom
+[ "$quiet" != "y" ] && log_end_msg
+
+# Preserve information on old systems without /run on the rootfs
+if [ -d ${rootmnt}/run ]; then
+	mount -n -o move /run ${rootmnt}/run
+else
+	# The initramfs udev database must be migrated:
+	if [ -d /run/udev ] && [ ! -d /dev/.udev ]; then
+		mv /run/udev /dev/.udev
+	fi
+	# The initramfs debug info must be migrated:
+	if [ -d /run/initramfs ] && [ ! -d /dev/.initramfs ]; then
+		mv /run/initramfs /dev/.initramfs
+	fi
+	umount /run
+fi
+
+# No init on rootmount
+if ! validate_init "${init}" ; then
+	panic "No init found. Try passing init= bootarg."
+fi
+
+maybe_break init
+
+# don't leak too much of env - some init(8) don't clear it
+# (keep init, rootmnt, drop_caps)
+unset debug
+unset MODPROBE_OPTIONS
+unset DPKG_ARCH
+unset ROOTFLAGS
+unset ROOTFSTYPE
+unset ROOTDELAY
+unset ROOT
+unset IP
+unset BOOT
+unset BOOTIF
+unset UBIMTD
+unset blacklist
+unset break
+unset noresume
+unset panic
+unset quiet
+unset readonly
+unset resume
+unset resume_offset
+unset fastboot
+unset forcefsck
+unset fsckfix
+
+# Move virtual filesystems over to the real filesystem
+mount -n -o move /sys ${rootmnt}/sys
+mount -n -o move /proc ${rootmnt}/proc
+
+
+# Chain to real filesystem
+if [ -z "$drop_caps" ] && command -v switch_root >/dev/null 2>&1; then
+	exec switch_root ${rootmnt} ${init} "$@" <${rootmnt}/dev/console >${rootmnt}/dev/console
+elif command -v run-init >/dev/null 2>&1; then
+	exec run-init ${drop_caps} ${rootmnt} ${init} "$@" <${rootmnt}/dev/console >${rootmnt}/dev/console
+fi
+echo "Something went badly wrong in the initramfs."
+panic "Please file a bug on initramfs-tools."

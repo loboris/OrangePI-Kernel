@@ -1,0 +1,164 @@
+# NFS filesystem mounting			-*- shell-script -*-
+
+# FIXME This needs error checking
+
+nfs_top()
+{
+	if [ "${nfs_top_used}" != "yes" ]; then
+		[ "$quiet" != "y" ] && log_begin_msg "Running /scripts/nfs-top"
+		run_scripts /scripts/nfs-top
+		[ "$quiet" != "y" ] && log_end_msg
+	fi
+	nfs_top_used=yes
+}
+
+nfs_premount()
+{
+	if [ "${nfs_premount_used}" != "yes" ]; then
+		[ "$quiet" != "y" ] && log_begin_msg "Running /scripts/nfs-premount"
+		run_scripts /scripts/nfs-premount
+		[ "$quiet" != "y" ] && log_end_msg
+	fi
+	nfs_premount_used=yes
+}
+
+nfs_bottom()
+{
+	if [ "${nfs_premount_used}" = "yes" ] || [ "${nfs_top_used}" = "yes" ]; then
+		[ "$quiet" != "y" ] && log_begin_msg "Running /scripts/nfs-bottom"
+		run_scripts /scripts/nfs-bottom
+		[ "$quiet" != "y" ] && log_end_msg
+	fi
+	nfs_premount_used=no
+	nfs_top_used=no
+}
+
+# parse nfs bootargs and mount nfs
+nfs_mount_root_impl()
+{
+	configure_networking
+
+	# get nfs root from dhcp
+	if [ "x${NFSROOT}" = "xauto" ]; then
+		# check if server ip is part of dhcp root-path
+		if [ "${ROOTPATH#*:}" = "${ROOTPATH}" ]; then
+			NFSROOT=${ROOTSERVER}:${ROOTPATH}
+		else
+			NFSROOT=${ROOTPATH}
+		fi
+
+	# nfsroot=[<server-ip>:]<root-dir>[,<nfs-options>]
+	elif [ -n "${NFSROOT}" ]; then
+		# nfs options are an optional arg
+		if [ "${NFSROOT#*,}" != "${NFSROOT}" ]; then
+			NFSOPTS="-o ${NFSROOT#*,}"
+		fi
+		NFSROOT=${NFSROOT%%,*}
+		if [ "${NFSROOT#*:}" = "$NFSROOT" ]; then
+			NFSROOT=${ROOTSERVER}:${NFSROOT}
+		fi
+	fi
+
+	if [ -z "${NFSOPTS}" ]; then
+		NFSOPTS="-o retrans=10"
+	fi
+
+	nfs_premount
+
+	if [ ${readonly} = y ]; then
+		roflag="-o ro"
+	else
+		roflag="-o rw"
+	fi
+
+	nfsmount -o nolock ${roflag} ${NFSOPTS} ${NFSROOT} ${rootmnt}
+}
+
+# NFS root mounting
+nfs_mount_root()
+{
+	nfs_top
+
+	modprobe nfs
+	# For DHCP
+	modprobe af_packet
+
+	wait_for_udev 10
+
+	# Default delay is around 180s
+	delay=${ROOTDELAY:-180}
+
+	# loop until nfsmount succeeds
+	nfs_mount_root_impl
+	nfs_retry_count=0
+	while [ ${nfs_retry_count} -lt ${delay} ] \
+		&& ! chroot "${rootmnt}" test -x "${init}" ; do
+		[ "$quiet" != "y" ] && log_begin_msg "Retrying nfs mount"
+		/bin/sleep 1
+		nfs_mount_root_impl
+		nfs_retry_count=$(( ${nfs_retry_count} + 1 ))
+		[ "$quiet" != "y" ] && log_end_msg
+	done
+}
+
+nfs_mount_fs_impl()
+{
+	configure_networking
+
+	if [ -z "${NFSOPTS}" ]; then
+		NFSOPTS="-o retrans=10"
+	fi
+
+	nfs_premount
+
+	if [ ${readonly} = y ]; then
+		roflag="-o ro"
+	else
+		roflag="-o rw"
+	fi
+
+	read_fstab_entry "$1"
+
+	nfsmount ${roflag} ${NFSOPTS} -o "${MNT_OPTS}" "$MNT_FSNAME" "${rootmnt}${MNT_DIR}"
+}
+
+nfs_mount_fs()
+{
+	nfs_top
+
+	modprobe nfs
+	# For DHCP
+	modprobe af_packet
+
+	wait_for_udev 10
+
+	# Default delay is around 180s
+	delay=${ROOTDELAY:-180}
+
+	# Don't loop here; we can't sanely check if it worked like for
+	# the rootfs or /etc.
+	nfs_mount_fs_impl "$1"
+}
+
+mountroot()
+{
+	nfs_mount_root
+}
+
+mount_top()
+{
+	# Note, also called directly in case it's overridden.
+	nfs_top
+}
+
+mount_premount()
+{
+	# Note, also called directly in case it's overridden.
+	nfs_premount
+}
+
+mount_bottom()
+{
+	# Note, also called directly in case it's overridden.
+	nfs_bottom
+}

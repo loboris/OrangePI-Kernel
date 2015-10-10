@@ -1,0 +1,57 @@
+menuconfig W1
+	tristate "Dallas's 1-wire support"
+	depends on HAS_IOMEM
+	---help---
+	  Dallas' 1-wire bus is useful to connect slow 1-pin devices
+	  such as iButtons and thermal sensors.
+
+	  If you want W1 support, you should say Y here.
+
+	  This W1 support can also be built as a module.  If so, the module
+	  will be called wire.
+
+if W1
+
+config W1_CON
+	depends on CONNECTOR
+	bool "Userspace communication over connector"
+	default y
+	--- help ---
+	  This allows to communicate with userspace using connector. For more
+	  information see <file:Documentation/connector/connector.txt>.
+	  There are three types of messages between w1 core and userspace:
+	  1. Events. They are generated each time new master or slave device found
+		either due to automatic or requested search.
+	  2. Userspace commands. Includes read/write and search/alarm search commands.
+	  3. Replies to userspace commands.
+
+config W1_SUNXI
+       depends on GPIO_SUNXI
+       tristate "1-wire sunxi support"
+       default n
+       --- help ---
+               This adds a way to register a platform device for 1-wire bus.
+               It introduces a new section "[w1_para]" in the FEX to configure the
+               GPIO pin number used for the bus, with the attribute named "gpio".
+               The GPIO pin must also be defined in the "[gpio_para]" section.
+
+               1-wire device can then be accessed using the w1-gpio driver.
+
+               Example configuration :
+               [w1_para]
+               gpio = 3
+
+               [gpio_para]
+               gpio_used = 1
+               gpio_num = 3
+               ...
+               gpio_pin_3 = port:PH7<0><default><default><0>
+
+               It is also possible to configure the GPIO pin number with the
+               module paramerer "gpio". In this case, if the pin is valid,
+               it will be used instead of what is configured in the FEX script.
+
+source drivers/w1/masters/Kconfig
+source drivers/w1/slaves/Kconfig
+
+endif # W1

@@ -1,0 +1,4 @@
+/scripts/local-premount/btrfs "$@"
+[ -e /conf/param.conf ] && . /conf/param.conf
+/scripts/local-premount/resume "$@"
+[ -e /conf/param.conf ] && . /conf/param.conf

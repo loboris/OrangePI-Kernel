@@ -1,0 +1,2 @@
+/scripts/init-bottom/udev "$@"
+[ -e /conf/param.conf ] && . /conf/param.conf
