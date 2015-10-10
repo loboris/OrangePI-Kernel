@@ -4,7 +4,7 @@ Linux Kernel for OrangePI H3 boards
 About
 -----
 
-The repository contains Linux kernel sources (3.4.9) adapted for OrangePI H3 boards, gcc toolchain, adapted rootfs and building scripts.
+The repository contains Linux kernel sources (3.4.39) adapted for OrangePI H3 boards, gcc toolchain, adapted rootfs and building scripts.
 
 Building
 --------
