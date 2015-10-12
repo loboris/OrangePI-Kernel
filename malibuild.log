@@ -1,4 +1,0 @@
-drivers/net/wireless/ap6210/Kconfig:42:warning: defaults for choice values not supported
-#
-# configuration written to .config
-#

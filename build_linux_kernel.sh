@@ -131,6 +131,9 @@ if [ "${1}" = "clean" ]; then
     rm -rf ../build/lib.opi2/* > /dev/null 2>&1
     rm -rf ../build/lib.opiplus/* > /dev/null 2>&1
     rm -f ../build/uImage* > /dev/null 2>&1
+    rm -f ../kbuild* > /dev/null 2>&1
+    rm -f ../malibuild* > /dev/null 2>&1
+    rm if ../linux-3.4/modules/malibuild* > /dev/null 2>&1
     rmdir ../build/lib.opi2 > /dev/null 2>&1
     rmdir ../build/lib.opiplus > /dev/null 2>&1
 elif [ "${1}" = "all" ]; then
