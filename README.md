@@ -25,3 +25,6 @@ The included build script *build_linux_kernel.sh* can be used to build the kerne
 **plus** builds the uImage for OPI-PLUS
 
 After the build the resulting kernel files (uImage and kernel modules) are placed into **build** directory.
+
+To build script.bin for all OPI boards and resolutions run:
+`./build_scripts`

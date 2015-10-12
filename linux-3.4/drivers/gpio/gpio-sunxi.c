@@ -507,7 +507,6 @@ static struct platform_driver gpio_sw_driver = {
 static int __init gpio_sw_init(void)
 {
     int i,cnt,used=0;
-    script_item_u w1_pin;
     script_item_u val;
     script_item_u   *list = NULL;
     script_item_value_type_e  type;
@@ -553,17 +552,7 @@ static int __init gpio_sw_init(void)
         standby_led_pin.str = NULL;
     }
 
-    /*w1_pin.val = -1;
-    type = script_get_item("w1_para", "gpio", &w1_pin);
-    if(SCIRPT_ITEM_VALUE_TYPE_INT != type) {
-        w1_pin.val = -1; 
-    }*/
-    
     for(i=0;i<cnt;i++){
-        /*if ((i+1) == w1_pin.val) {
-            printk("gpio_pin_%d(%d) w1 reserved\n",i+1, list[i].gpio.gpio);
-            continue;
-        }*/
         printk("gpio_pin_%d(%d) gpio_request\n",i+1, list[i].gpio.gpio);
         if(gpio_request(list[i].gpio.gpio, NULL)){
             printk("gpio_pin_%d(%d) gpio_request fail \n",i+1, list[i].gpio.gpio);
@@ -587,28 +576,15 @@ static int __init gpio_sw_init(void)
         } else if (standby_led_pin.str && !strcmp(sw_pdata[i]->name, standby_led_pin.str)) {
             sprintf(sw_pdata[i]->link,"%s", "standby_led");
         }
-        /*if ((i+1) == 12) {
-            sprintf(sw_pdata[i]->link,"%s", "w1_gpio");
-            gpio_sw_dev[i]->name = "w1_gpio";
-            gpio_sw_dev[i]->id   = i;
-            gpio_sw_dev[i]->dev.platform_data   = sw_pdata[i];
-            gpio_sw_dev[i]->dev.release         = gpio_sw_release;
+        gpio_sw_dev[i]->name = "gpio_sw";
+        gpio_sw_dev[i]->id   = i;
+        gpio_sw_dev[i]->dev.platform_data   = sw_pdata[i];
+        gpio_sw_dev[i]->dev.release         = gpio_sw_release;
 
-            if(platform_device_register(gpio_sw_dev[i])){
-                printk(KERN_ERR "%s platform_device_register fail\n",sw_pdata[i]->name);
-                goto INIT_ERR_FREE;
-            }
-        } else {*/
-            gpio_sw_dev[i]->name = "gpio_sw";
-            gpio_sw_dev[i]->id   = i;
-            gpio_sw_dev[i]->dev.platform_data   = sw_pdata[i];
-            gpio_sw_dev[i]->dev.release         = gpio_sw_release;
-
-            if(platform_device_register(gpio_sw_dev[i])){
-                printk(KERN_ERR "%s platform_device_register fail\n",sw_pdata[i]->name);
-                goto INIT_ERR_FREE;
-            }
-        //}
+        if(platform_device_register(gpio_sw_dev[i])){
+            printk(KERN_ERR "%s platform_device_register fail\n",sw_pdata[i]->name);
+            goto INIT_ERR_FREE;
+        }
     }
     if(platform_driver_register(&gpio_sw_driver)){
         printk(KERN_ERR "gpio user platform_driver_register  fail\n");

@@ -1272,8 +1272,8 @@ int gpio_request(unsigned gpio, const char *label)
 		goto done;
 	}
 	desc = &gpio_desc[gpio];
-        chip = gpio_to_chip(gpio); // lobo
-	//chip = desc->chip;
+        //chip = gpio_to_chip(gpio); // lobo (w1 support ??)
+	chip = desc->chip;
 	if (chip == NULL)
 		goto done;
 

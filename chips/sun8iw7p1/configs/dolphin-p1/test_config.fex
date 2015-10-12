@@ -1,0 +1,303 @@
+;-------------------------------------------------------------------------------
+; 测试模块配置示例
+;
+; [example]
+; display_name= "Example"
+; activated   = 1
+; program     = "example.sh"
+; category    = 0
+; run_type    = 1
+;
+; display_name
+;   显示到界面的名称，字符串类型，如果需要显示双引号，可以使用以下语法：
+;       display_name= string:"Example"
+;   区别在于后者会显示"string:"后面所有的字符，包括空格和制表符。该项能够容纳
+;   64个英文字符，32个中文字符。如果display_name为空，测试程序不会运行。
+;
+; activated
+;   0: 不测试该模块
+;   1: 测试该模块
+;
+; program
+;   模块的测试程序，该项能够容纳16个英文字符。
+;
+; category
+;   0: 自动化测试模块
+;   1: 手动测试模块
+;
+; run_type
+;   0: 等待当前模块的测试程序执行完毕再运行下一个模块的测试程序
+;   1: 不等待当前模块的测试程序执行完毕
+;   一般为了提高整体的测试速度，对于耗时较长的测试程序建议填0，反之填1；注意，当
+;   category = 1，即手动测试模块时，该项无效。
+;-------------------------------------------------------------------------------
+
+;-------------------------------------------------------------------------------
+; test_size
+;   unit: MB
+;-------------------------------------------------------------------------------
+[dram]
+display_name= "内存"
+activated   = 1
+program     = "memtester.sh"
+category    = 0
+run_type    = 1
+dram_size   = 1024
+test_size   = 8 
+
+[rtc]
+display_name= "时钟"
+activated   = 1
+program     = "rtctester.sh"
+category    = 0
+run_type    = 1
+
+;-------------------------------------------------------------------------------
+; module_path
+;   The full path of wifi module file.
+; module_args
+;   The arguments of wifi module.
+;-------------------------------------------------------------------------------
+[wifi]
+display_name= "WIFI"
+activated   = 1
+program     = "wifitester.sh"
+category    = 0
+run_type    = 1
+module_count= 1
+module_path = "/system/vendor/modules/8188eu.ko"
+module_args = 
+
+
+[ethernet]
+display_name= "以太网"
+activated   = 1
+program     = "ethtester.sh"
+category    = 0
+run_type    = 1
+module_path =
+module_args = 
+
+;-------------------------------------------------------------------------------
+; test_size
+;   Test size for nand read and write test.
+;-------------------------------------------------------------------------------
+[nand]
+display_name= "nand闪存"
+activated   = 0
+program     = "nandtester.sh"
+category    = 0
+run_type    = 1
+module_path= "/system/vendor/modules/nand.ko"
+test_size   = 16
+
+[emmc]
+display_name= "emmc闪存"
+activated   = 0
+program     = "emmctester.sh"
+category    = 0
+run_type    = 1
+test_size   = 16
+
+[bluetooth]
+display_name= "蓝牙"
+activated   = 0
+program     = "bttester.sh"
+baud_rate	= 1500000
+test_time   = 30
+category    = 0
+dst_bt      = "111"
+run_type    = 1
+device_node = "/dev/ttyS2"
+module_path = "/system/vendor/modules/bcm4339a0.hcd"
+
+[mmc]
+display_name= "SD卡"
+activated   = 1
+program     = "mmctester.sh"
+category    = 1
+run_type    = 1
+
+[udisk]
+display_name= "U盘"
+activated   = 1
+program     = "udisktester.sh"
+category    = 1
+run_type    = 1
+
+[Usb_HOST1]
+display_name= "USB主机1"
+activated   = 1
+program     = "host1tester.sh"
+category    = 1
+run_type    = 1
+
+[Usb_HOST2]
+display_name= "USB主机2"
+activated   = 1
+program     = "host2tester.sh"
+category    = 1
+run_type    = 1
+
+[Usb_OTG]
+display_name= "USB_OTG"
+activated   = 0
+program     = "otgtester.sh"
+category    = 1
+run_type    = 1
+
+[SATA]
+display_name= "SATA"
+activated   = 0
+program     = "satatest.sh"
+category    = 0
+run_type    = 1
+
+;-------------------------------------------------------------------------------
+; sound_file
+;   The full path of sound file.
+; samplerate
+;   The samplerate of sound file.
+; support_mode
+;   0 : 480I    
+;   1 : 576I    
+;   2 : 480P    
+;   3 : 576P    
+;   4 : 720P 50HZ
+;   5 : 720P 60HZ
+;   6 : 1080I 50HZ
+;   7 : 1080I 60HZ
+;   8 : 1080P 24HZ
+;   9 : 1080P 50HZ
+;   10: 1080P 60HZ
+;-------------------------------------------------------------------------------
+[hdmi]
+display_name= "HDMI"
+activated   = 1
+program     = "hdmitester.sh"
+category    = 1
+run_type    = 1
+sound_file  = "/dragonboard/data/test48000.pcm"
+samplerate  = 48000
+
+[tv]
+display_name= "TV"
+activated   = 1
+program     = "tvtester.sh"
+category    = 1
+run_type    = 1
+sound_file  = "/dragonboard/data/test48000.pcm"
+samplerate  = 48000
+
+[spdif]
+display_name= "SPDIF"
+activated   = 0
+program     = "spdiftester.sh"
+category    = 1
+run_type    = 1
+sound_file  = "/dragonboard/data/test48000.pcm"
+samplerate  = 48000
+module_count = 4
+module1_path = "/system/vendor/modules/sunxi_spdif.ko"
+module2_path = "/system/vendor/modules/sunxi_spdma.ko"
+module3_path = "/system/vendor/modules/sndspdif.ko"
+module4_path = "/system/vendor/modules/sunxi_sndspdif.ko"
+
+;-------------------------------------------------------------------------------
+; led_pin
+;   the config of the led gpio
+;-------------------------------------------------------------------------------
+[gpio_led]
+display_name= "LED"
+activated   = 1
+program     = "ledtester.sh"
+category    = 0
+run_type    = 1
+led_count	= 2
+led1_name = "normal_led"
+led2_name = "standby_led"
+module_path = "/system/vendor/modules/gpio-sunxi.ko"
+
+;-------------------------------------------------------------------------------
+; module_path
+;   The full path of ir module file.
+;-------------------------------------------------------------------------------
+[ir]
+display_name= "红外"
+activated   = 1
+program     = "irtester"
+category    = 1
+run_type    = 1
+module_path = "/system/vendor/modules/sunxi-ir-rx.ko"
+
+;-------------------------------------------------------------------------------
+; manual_menu_name
+;   manual test case menu name, 32bytes.
+; auto_menu_name
+;   auto test case menu name, 32bytes.
+; clear_button_name
+;   clear screen button name, 8bytes.
+; font_size
+;   test case font display size, valid value: 20pixel(default), 24pixel.
+;
+; Color Index
+;   0: White
+;   1: Yellow
+;   2: Green
+;   3: Cyan
+;   4: Magenta
+;   5: Red
+;   6: Blue
+;   7: Black
+;   8: Beauty
+; menu_bgcolor
+;   The background color index of test case category menu.
+; menu_fgcolor
+;   The foreground color index of test case category menu.
+; item_init_bgcolor
+;   The background color index of test case item init status.
+; item_init_fgcolor
+;   The foreground color index of test case item init status.
+; item_ok_bgcolor
+;   The background color index of test case item OK status.
+; item_ok_fgcolor
+;   The foreground color index of test case item OK status.
+; item_fail_bgcolor
+;   The background color index of test case item fail status.
+; item_fail_fgcolor
+;   The foreground color index of test case item fail status.
+;
+; pass_str
+;   The string display after test case display_name when test OK.
+; fail_str
+;   The string display after test case display_name when test Fail.
+;-------------------------------------------------------------------------------
+[df_view]
+tv_scale_factor     = 80
+hdmi_scale_factor   = 95
+manual_menu_name    = "手动测试项"
+auto_menu_name      = "自动测试项"
+clear_button_name   = "清屏"
+wifi_menu_name      = "wifi热点列表"
+font_size           = 20
+menu_bgcolor        = 1
+menu_fgcolor        = 7
+
+item_init_bgcolor   = 7
+item_init_fgcolor   = 0
+item_ok_bgcolor     = 7
+item_ok_fgcolor     = 6
+item_fail_bgcolor   = 7
+item_fail_fgcolor   = 5
+tp_draw_color       = 0
+
+;item_init_bgcolor   = 0
+;item_init_fgcolor   = 7
+;item_ok_bgcolor     = 0
+;item_ok_fgcolor     = 6
+;item_fail_bgcolor   = 0
+;item_fail_fgcolor   = 5
+;tp_draw_color       = 7
+
+pass_str            = "通过"
+fail_str            = "失败"
