@@ -687,11 +687,11 @@ static int sunxi_fb_cursor(struct fb_info *info, struct fb_cursor *cursor)
 
 s32 drv_disp_vsync_event(u32 sel)
 {
-	g_fbi.vsync_timestamp[sel] = ktime_get();
+	/*g_fbi.vsync_timestamp[sel] = ktime_get();
 
 	if(g_fbi.vsync_task[sel])
 		wake_up_process(g_fbi.vsync_task[sel]);
-
+        */
 	return 0;
 }
 
@@ -1292,7 +1292,7 @@ s32 fb_init(struct platform_device *pdev)
 	for(i=0; i<num_screens; i++) {
 		char task_name[25];
 
-		sprintf(task_name, "vsync proc %d", i);
+		/*sprintf(task_name, "vsync proc %d", i);
 		g_fbi.vsync_task[i] = kthread_create(vsync_thread, (void*)i, task_name);
 		if(IS_ERR(g_fbi.vsync_task[i])) {
 			__s32 err = 0;
@@ -1301,7 +1301,7 @@ s32 fb_init(struct platform_device *pdev)
 			g_fbi.vsync_task[i] = NULL;
 		} else {
 			sched_setscheduler_nocheck(g_fbi.vsync_task[i], SCHED_FIFO, &param);
-		}
+		}*/
 	}
 	init_waitqueue_head(&g_fbi.wait[0]);
 	init_waitqueue_head(&g_fbi.wait[1]);
