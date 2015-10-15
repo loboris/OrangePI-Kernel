@@ -25,6 +25,9 @@ rm rootfs-lobo.img.gz > /dev/null 2>&1
 
 # create new rootfs cpio
 cd rootfs-test1
+mkdir run > /dev/null 2>&1
+mkdir -p conf/conf.d > /dev/null 2>&1
+
 find . | cpio --quiet -o -H newc > ../rootfs-lobo.img
 cd ..
 gzip rootfs-lobo.img
@@ -136,6 +139,7 @@ if [ "${1}" = "clean" ]; then
     rm if ../linux-3.4/modules/malibuild* > /dev/null 2>&1
     rmdir ../build/lib.opi2 > /dev/null 2>&1
     rmdir ../build/lib.opiplus > /dev/null 2>&1
+    rm rootfs-lobo.img.gz > /dev/null 2>&1
 elif [ "${1}" = "all" ]; then
     make_kernel "2" "${2}"
     make_kernel "plus" "${2}"
