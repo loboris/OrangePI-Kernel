@@ -139,7 +139,8 @@ if [ "${1}" = "clean" ]; then
     rm if ../linux-3.4/modules/malibuild* > /dev/null 2>&1
     rmdir ../build/lib.opi2 > /dev/null 2>&1
     rmdir ../build/lib.opiplus > /dev/null 2>&1
-    rm rootfs-lobo.img.gz > /dev/null 2>&1
+    rm ../build/rootfs-lobo.img.gz > /dev/null 2>&1
+    rm -rf output/* > /dev/null 2>&1
 elif [ "${1}" = "all" ]; then
     make_kernel "2" "${2}"
     make_kernel "plus" "${2}"
