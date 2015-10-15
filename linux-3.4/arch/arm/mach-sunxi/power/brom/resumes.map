@@ -1,0 +1,99 @@
+
+Memory Configuration
+
+Name             Origin             Length             Attributes
+*default*        0x00000000         0xffffffff
+
+Linker script and memory map
+
+                0x00000000                __resumes_start = .
+
+.text           0x00000000       0xdc
+ arch/arm/mach-sunxi/power/brom/resume_head.o(.rodata)
+ .rodata        0x00000000       0x30 arch/arm/mach-sunxi/power/brom/resume_head.o
+                0x00000000                resume_head
+ arch/arm/mach-sunxi/power/brom/resumes.o(.text)
+ .text          0x00000030       0xac arch/arm/mach-sunxi/power/brom/resumes.o
+                0x00000030                _start
+                0x000000cc                cpu_brom_addr
+ *(.text)
+ .text          0x000000dc        0x0 arch/arm/mach-sunxi/power/brom/resume_head.o
+
+.glue_7         0x000000dc        0x0
+ .glue_7        0x00000000        0x0 linker stubs
+
+.glue_7t        0x000000dc        0x0
+ .glue_7t       0x00000000        0x0 linker stubs
+
+.vfp11_veneer   0x000000dc        0x0
+ .vfp11_veneer  0x00000000        0x0 linker stubs
+
+.v4_bx          0x000000dc        0x0
+ .v4_bx         0x00000000        0x0 linker stubs
+
+.iplt           0x000000dc        0x0
+ .iplt          0x00000000        0x0 arch/arm/mach-sunxi/power/brom/resume_head.o
+
+.rel.dyn        0x000000dc        0x0
+ .rel.iplt      0x00000000        0x0 arch/arm/mach-sunxi/power/brom/resume_head.o
+
+.rodata
+ *(.rodata)
+
+.data           0x000000dc        0x0
+ *(.data)
+ .data          0x000000dc        0x0 arch/arm/mach-sunxi/power/brom/resume_head.o
+ .data          0x000000dc        0x0 arch/arm/mach-sunxi/power/brom/resumes.o
+                0x000000dc                __bss_start = .
+
+.igot.plt       0x000000dc        0x0
+ .igot.plt      0x00000000        0x0 arch/arm/mach-sunxi/power/brom/resume_head.o
+
+.bss            0x000000dc        0x0
+ *(.sbss)
+ *(.scommon)
+ *(.bss)
+ .bss           0x000000dc        0x0 arch/arm/mach-sunxi/power/brom/resume_head.o
+ .bss           0x000000dc        0x0 arch/arm/mach-sunxi/power/brom/resumes.o
+ *(COMMON)
+                0x000000dc                __bss_end = .
+                0x000000dc                __resumes_end = .
+LOAD arch/arm/mach-sunxi/power/brom/resumes.o
+LOAD arch/arm/mach-sunxi/power/brom/resume_head.o
+OUTPUT(arch/arm/mach-sunxi/power/brom/resumes.elf elf32-littlearm)
+
+.debug_info     0x00000000      0x1c2
+ .debug_info    0x00000000      0x141 arch/arm/mach-sunxi/power/brom/resume_head.o
+ .debug_info    0x00000141       0x81 arch/arm/mach-sunxi/power/brom/resumes.o
+
+.debug_abbrev   0x00000000       0x93
+ .debug_abbrev  0x00000000       0x7f arch/arm/mach-sunxi/power/brom/resume_head.o
+ .debug_abbrev  0x0000007f       0x14 arch/arm/mach-sunxi/power/brom/resumes.o
+
+.debug_line     0x00000000      0x105
+ .debug_line    0x00000000       0x7b arch/arm/mach-sunxi/power/brom/resume_head.o
+ .debug_line    0x0000007b       0x8a arch/arm/mach-sunxi/power/brom/resumes.o
+
+.debug_str      0x00000000      0x156
+ .debug_str     0x00000000      0x156 arch/arm/mach-sunxi/power/brom/resume_head.o
+                                0x16f (size before relaxing)
+
+.comment        0x00000000       0x64
+ .comment       0x00000000       0x64 arch/arm/mach-sunxi/power/brom/resume_head.o
+                                 0x65 (size before relaxing)
+
+.note.GNU-stack
+                0x00000000        0x0
+ .note.GNU-stack
+                0x00000000        0x0 arch/arm/mach-sunxi/power/brom/resume_head.o
+
+.ARM.attributes
+                0x00000000       0x33
+ .ARM.attributes
+                0x00000000       0x35 arch/arm/mach-sunxi/power/brom/resume_head.o
+ .ARM.attributes
+                0x00000035       0x21 arch/arm/mach-sunxi/power/brom/resumes.o
+
+.debug_aranges  0x00000000       0x20
+ .debug_aranges
+                0x00000000       0x20 arch/arm/mach-sunxi/power/brom/resumes.o

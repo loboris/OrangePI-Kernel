@@ -324,41 +324,63 @@ full_duplex   = 1
 manual_cs     = 0
 
 ;----------------------------------------------------------------------------------
-;userspace gpio interface for android
+;userspace gpio interface
+; ** COMMENT THE PINS USED IN OTHER INTERFACES (I2C, SPI, 1-WIRE...)
 ;----------------------------------------------------------------------------------
 [gpio_para]
 gpio_used       = 1
-gpio_num        = 30
-gpio_pin_1      = port:PL10<1><default><default><1>
-gpio_pin_2      = port:PA15<1><default><default><0>
-gpio_pin_3      = port:PA12<1><default><default><0>
-gpio_pin_4      = port:PA11<1><default><default><0>
-gpio_pin_5      = port:PA06<1><default><default><0>
-gpio_pin_6      = port:PA13<1><default><default><0>
-gpio_pin_7      = port:PA14<1><default><default><0>
-gpio_pin_8      = port:PA01<1><default><default><0>
-gpio_pin_9      = port:PD14<1><default><default><0>
-gpio_pin_10      = port:PA00<1><default><default><0>
-gpio_pin_11      = port:PA03<1><default><default><0>
-gpio_pin_12      = port:PC04<1><default><default><0>
-gpio_pin_13      = port:PC07<1><default><default><0>
-gpio_pin_14      = port:PC00<1><default><default><0>
-gpio_pin_15      = port:PC01<1><default><default><0>
-gpio_pin_16      = port:PA02<1><default><default><0>
-gpio_pin_17      = port:PC02<1><default><default><0>
-gpio_pin_18      = port:PC03<1><default><default><0>
-gpio_pin_19      = port:PA21<1><default><default><0>
-gpio_pin_20      = port:PA19<1><default><default><0>
-gpio_pin_21      = port:PA18<1><default><default><0>
-gpio_pin_22      = port:PA07<1><default><default><0>
-gpio_pin_23      = port:PA08<1><default><default><0>
-gpio_pin_24      = port:PG08<1><default><default><0>
-gpio_pin_25      = port:PA09<1><default><default><0>
-gpio_pin_26      = port:PA10<1><default><default><0>
-gpio_pin_27      = port:PG09<1><default><default><0>
-gpio_pin_28      = port:PA20<1><default><default><0>
-gpio_pin_29      = port:PG06<1><default><default><0>
-gpio_pin_30      = port:PG07<1><default><default><0>
+;gpio_num        = 30
+;gpio_pin_1      = port:PL10<1><default><default><1>
+;gpio_pin_2      = port:PA15<1><default><default><0>
+;gpio_pin_3      = port:PA12<1><default><default><0>
+;gpio_pin_4      = port:PA11<1><default><default><0>
+;gpio_pin_5      = port:PA06<1><default><default><0>
+;gpio_pin_6      = port:PA13<1><default><default><0>
+;gpio_pin_7      = port:PA14<1><default><default><0>
+;gpio_pin_8      = port:PA01<1><default><default><0>
+;gpio_pin_9      = port:PD14<1><default><default><0>
+;gpio_pin_10      = port:PA00<1><default><default><0>
+;gpio_pin_11      = port:PA03<1><default><default><0>
+;gpio_pin_12      = port:PC04<1><default><default><0>
+;gpio_pin_13      = port:PC07<1><default><default><0>
+;gpio_pin_14      = port:PC00<1><default><default><0>
+;gpio_pin_15      = port:PC01<1><default><default><0>
+;gpio_pin_16      = port:PA02<1><default><default><0>
+;gpio_pin_17      = port:PC02<1><default><default><0>
+;gpio_pin_18      = port:PC03<1><default><default><0>
+;gpio_pin_19      = port:PA21<1><default><default><0>
+;gpio_pin_20      = port:PA19<1><default><default><0>
+;gpio_pin_21      = port:PA18<1><default><default><0>
+;gpio_pin_22      = port:PA07<1><default><default><0>
+;gpio_pin_23      = port:PA08<1><default><default><0>
+;gpio_pin_24      = port:PG08<1><default><default><0>
+;gpio_pin_25      = port:PA09<1><default><default><0>
+;gpio_pin_26      = port:PA10<1><default><default><0>
+;gpio_pin_27      = port:PG09<1><default><default><0>
+;gpio_pin_28      = port:PA20<1><default><default><0>
+;gpio_pin_29      = port:PG06<1><default><default><0>
+;gpio_pin_30      = port:PG07<1><default><default><0>
+
+gpio_num        = 19
+gpio_pin_1      = port:PL10<1><default><default><0>
+gpio_pin_2      = port:PA15<1><default><default><1>
+gpio_pin_3      = port:PA06<1><default><default><0>
+gpio_pin_4      = port:PA13<1><default><default><0>
+gpio_pin_5      = port:PA14<1><default><default><0>
+gpio_pin_6      = port:PD14<1><default><default><0>
+gpio_pin_7      = port:PA03<1><default><default><0>
+gpio_pin_8      = port:PC04<1><default><default><0>
+gpio_pin_9      = port:PC07<1><default><default><0>
+gpio_pin_10     = port:PC03<1><default><default><0>
+gpio_pin_11     = port:PA21<1><default><default><0>
+gpio_pin_12     = port:PA07<1><default><default><0>
+gpio_pin_13     = port:PA08<1><default><default><0>
+gpio_pin_14     = port:PG08<1><default><default><0>
+gpio_pin_15     = port:PA09<1><default><default><0>
+gpio_pin_16     = port:PA10<1><default><default><0>
+gpio_pin_17     = port:PG09<1><default><default><0>
+gpio_pin_18     = port:PG06<1><default><default><0>
+gpio_pin_19     = port:PG07<1><default><default><0>
 
 [led_assign]
 normal_led      = "gpio_pin_2"
@@ -776,16 +798,16 @@ smc_sda             = port:PA08<2><default><default><default>
 
 
 ;--------------------------------
-;[usbc0]：控制器0的配置。
-;usb_used：USB使能标志。置1，表示系统中USB模块可用,置0,则表示系统USB禁用。
-;usb_port_type：USB端口的使用情况。 0：device only;1：host only;2：OTG
-;usb_detect_type：USB端口的检查方式。0：不做检测;1：vbus/id检查;2：id/dpdm检查
-;usb_id_gpio：USB ID pin脚配置。具体请参考gpio配置说明。
-;usb_det_vbus_gpio：USB DET_VBUS pin脚配置。具体请参考gpio配置说明。
-;usb_drv_vbus_gpio：USB DRY_VBUS pin脚配置。具体请参考gpio配置说明。
-;usb_det_vbus_gpio: "axp_ctrl",表示axp 提供
-;usb_restrict_gpio  usb限流控制pin
-;usb_restric_flag:  usb限流标置
+; [usbc0]: Controller 0 configuration.
+; usb used:          USB enable flag. Set, indicating that the system USB module is available, is set to 0, it means that the system USB is disabled.
+; usb_port_type:     USB port usage. 0: device only; 1: host only; 2: OTG
+; usb_detect_type:   USB port of checking. 0: not detected; 1: vbus / id checks; 2: id / dpdm check
+; usb_id_gpio:       USB ID pin pin configuration. For details, please refer gpio configuration instructions.
+; usb_det_vbus_gpio: USB DET_VBUS pin pin configuration. For details, please refer gpio configuration instructions.
+; usb_drv_vbus_gpio: USB DRY_VBUS pin pin configuration. For details, please refer gpio configuration instructions.
+; usb_det_vbus_gpio: "axp_ctrl", represents axp offer
+; usb_restrict_gpio: usb limiting control pin
+; usb_restric_flag:  usb limiting standard set
 ;--------------------------------
 ;--------------------------------
 ;---       USB0控制标志
