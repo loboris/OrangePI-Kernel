@@ -158,6 +158,7 @@ static const struct usb_device_id usbtouch_devices[] = {
 	/* ignore the HID capable devices, handled by usbhid */
 	{USB_DEVICE_HID_CLASS(0x0eef, 0x0001), .driver_info = DEVTYPE_IGNORE},
 	{USB_DEVICE_HID_CLASS(0x0eef, 0x0002), .driver_info = DEVTYPE_IGNORE},
+        {USB_DEVICE_HID_CLASS(0x0eef, 0x0005), .driver_info = DEVTYPE_IGNORE},
 
 	/* normal device IDs */
 	{USB_DEVICE(0x3823, 0x0001), .driver_info = DEVTYPE_EGALAX},
@@ -165,6 +166,7 @@ static const struct usb_device_id usbtouch_devices[] = {
 	{USB_DEVICE(0x0123, 0x0001), .driver_info = DEVTYPE_EGALAX},
 	{USB_DEVICE(0x0eef, 0x0001), .driver_info = DEVTYPE_EGALAX},
 	{USB_DEVICE(0x0eef, 0x0002), .driver_info = DEVTYPE_EGALAX},
+        {USB_DEVICE(0x0eef, 0x0005), .driver_info = DEVTYPE_EGALAX},
 	{USB_DEVICE(0x1234, 0x0001), .driver_info = DEVTYPE_EGALAX},
 	{USB_DEVICE(0x1234, 0x0002), .driver_info = DEVTYPE_EGALAX},
 #endif
