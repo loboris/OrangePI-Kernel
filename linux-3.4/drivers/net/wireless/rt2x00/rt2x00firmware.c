@@ -52,7 +52,7 @@ static int rt2x00lib_request_firmware(struct rt2x00_dev *rt2x00dev)
 
 	retval = request_firmware(&fw, fw_name, device);
 	if (retval) {
-		ERROR(rt2x00dev, "Failed to request Firmware.\n");
+		ERROR(rt2x00dev, "Failed to request Firmware ('%s').\n", fw_name);
 		return retval;
 	}
 

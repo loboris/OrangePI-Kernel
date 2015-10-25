@@ -23,11 +23,11 @@ The included build script *build_linux_kernel.sh* can be used to build the kerne
 After the build the resulting kernel files (uImage and kernel modules) are placed into **build** directory.
 
 To build **script.bin** for all OPI boards and resolutions run:<br />
-`./build_scripts`<br />
+`./build_scripts [clean]`<br />
+**clean** as 1st parameter cleans the scripts and logs<br />
+
 After the build the *script.bin* are placed into **build** directory.
 
 To **configure kernel** run:<br />
-`./config_linux_kernel.sh 2|plus`
+`./config_linux_kernel.sh`
 
-**2** creates kernel config for OPI-2<br />
-**plus** creates kernel config for OPI-PLUS<br />

@@ -11,7 +11,7 @@ cd linux-3.4
 
 # ####################################
 # Copy config file to config directory
-cp ../build/sun8iw7p1smp_lobo_defconfig arch/arm/configs
+#cp ../build/sun8iw7p1smp_lobo_defconfig arch/arm/configs
 
 make ARCH=arm CROSS_COMPILE=${cross_comp}- sun8iw7p1smp_lobo_defconfig > ../malibuild.log 2>&1
 if [ $? -ne 0 ]; then

@@ -40,7 +40,6 @@ LINKERNEL_DIR=`pwd`
 # build rootfs
 rm -rf output/* > /dev/null 2>&1
 mkdir -p output/lib > /dev/null 2>&1
-#mkdir -p output/firmware > /dev/null 2>&1
 cp ../build/rootfs-lobo.img.gz output/rootfs.cpio.gz
 
 #==================================================================================
@@ -52,13 +51,18 @@ make_kernel() {
     # #################################
     # change some board dependant files
     if [ "${1}" = "plus" ]; then
+            cat ../build/sun8iw7p1smp_lobo_defconfig | sed '/CONFIG_GETH_CLK_SYS=y/a CONFIG_GMAC_PHY_POWER=y' > ../build/sun8iw7p1smp_lobo_defconfig.xx1
+            cat ../build/sun8iw7p1smp_lobo_defconfig.xx1 | sed s/"CONFIG_USB_SUNXI_OHCI0=y"/"# CONFIG_USB_SUNXI_OHCI0 is not set"/g > ../build/sun8iw7p1smp_lobo_defconfig.xx2
+            cat ../build/sun8iw7p1smp_lobo_defconfig.xx2 | sed s/"CONFIG_USB_SUNXI_OHCI2=y"/"# CONFIG_USB_SUNXI_OHCI2 is not set"/g > ../build/sun8iw7p1smp_lobo_defconfig.xx3
+            cat ../build/sun8iw7p1smp_lobo_defconfig.xx3 | sed s/"CONFIG_USB_SUNXI_OHCI3=y"/"# CONFIG_USB_SUNXI_OHCI3 is not set"/g > ../build/sun8iw7p1smp_lobo_defconfig.xx4
             cp ../build/Kconfig.piplus drivers/net/ethernet/sunxi/eth/Kconfig
             cp ../build/sunxi_geth.c.piplus drivers/net/ethernet/sunxi/eth/sunxi_geth.c
-            cp ../build/sun8iw7p1smp_lobo_defconfig.opiplus ../build/sun8iw7p1smp_lobo_defconfig
+            cp ../build/sun8iw7p1smp_lobo_defconfig.xx4 arch/arm/configs/sun8iw7p1smp_lobo_defconfig
+            rm ../build/sun8iw7p1smp_lobo_defconfig.xx?
     else
             cp ../build/Kconfig.pi2 drivers/net/ethernet/sunxi/eth/Kconfig
             cp ../build/sunxi_geth.c.pi2 drivers/net/ethernet/sunxi/eth/sunxi_geth.c
-            cp ../build/sun8iw7p1smp_lobo_defconfig.opi2 ../build/sun8iw7p1smp_lobo_defconfig
+            cp ../build/sun8iw7p1smp_lobo_defconfig arch/arm/configs/sun8iw7p1smp_lobo_defconfig
     fi
 
     # ###########################
@@ -66,10 +70,6 @@ make_kernel() {
             make ARCH=arm CROSS_COMPILE=${cross_comp}- mrproper > /dev/null 2>&1
     fi
     sleep 1
-
-    # ####################################
-    # Copy config file to config directory
-    cp ../build/sun8iw7p1smp_lobo_defconfig arch/arm/configs
 
     echo "Building kernel for OPI-${1} (${2}) ..."
     echo "  Configuring ..."
@@ -95,6 +95,11 @@ make_kernel() {
     echo "  Exporting modules ..."
     rm -rf output/lib/*
     make ARCH=arm CROSS_COMPILE=${cross_comp}- INSTALL_MOD_PATH=output modules_install >> ../kbuild_${1}_${2}.log 2>&1
+    if [ $? -ne 0 ] || [ ! -f arch/arm/boot/uImage ]; then
+        echo "  Error."
+    fi
+    echo "  Exporting firmware ..."
+    make ARCH=arm CROSS_COMPILE=${cross_comp}- INSTALL_MOD_PATH=output firmware_install >> ../kbuild_${1}_${2}.log 2>&1
     if [ $? -ne 0 ] || [ ! -f arch/arm/boot/uImage ]; then
         echo "  Error."
     fi
