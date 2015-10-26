@@ -3,9 +3,14 @@
 always  := resumes.code
 targets := resumes.elf
 
+hostprogs-y	:= mksunxichecksum
+#always		+= $(hostprogs-y)
+
 #use "-Os" flags.
 #Don't use "-O2" flags.
-KBUILD_CFLAGS := -g -c -nostdlib -march=armv7-a -marm -fno-unwind-tables -fno-asynchronous-unwind-tables -mlittle-endian -O2 --min_array_alignment=4 --no_unaligned_access
+KBUILD_CFLAGS := -g -c -nostdlib -march=armv7-a -marm \
+	-fno-unwind-tables -fno-asynchronous-unwind-tables -mlittle-endian -Os
+#	--min_array_alignment=4 --no_unaligned_acces
 
 #Include the cur dir.
 KBUILD_CPPFLAGS += -I.
@@ -22,21 +27,21 @@ resumes-y :=   resumes.o        \
 
 resumes-y := $(addprefix $(obj)/,$(resumes-y))
 
-$(obj)/resumes.code: $(obj)/resumes.bin
-	$(Q)$(obj)/gen_check_code $(obj)/resumes.bin $(obj)/resumes.code
+$(obj)/resumes.code: $(obj)/resumes.bin $(obj)/mksunxichecksum
+	$(obj)/mksunxichecksum $(obj)/resumes.bin $(obj)/resumes.code
 
 $(obj)/resumes.bin: $(obj)/resumes.elf FORCE
 	$(Q)$(CROSS_COMPILE)objcopy -O binary $(obj)/resumes.elf $(obj)/resumes.bin
 
 ifneq ($(strip $(CONFIG_ARCH_SUN9I)),)
-$(obj)/resumes.elf: $(obj)/sun9i_brom_scatter.scat $(resumes-y)
-	$(Q)$(CROSS_COMPILE)ld -T $(obj)/sun9i_brom_scatter.scat  -EL  $(resumes-y) -o $(obj)/resumes.elf  -Map $(obj)/resumes.map
+$(obj)/resumes.elf: $(srctree)/$(src)/sun9i_brom_scatter.scat $(resumes-y)
+	$(Q)$(CROSS_COMPILE)ld -T $(srctree)/$(src)/sun9i_brom_scatter.scat -EL $(resumes-y) -o $(obj)/resumes.elf -Map $(obj)/resumes.map
 	$(Q)$(CROSS_COMPILE)objdump -D $(obj)/resumes.elf > $(obj)/resumes.lst
 endif
 
 ifneq ($(strip $(CONFIG_ARCH_SUN8I)),)
-$(obj)/resumes.elf: $(obj)/sun8i_brom_scatter.scat $(resumes-y)
-	$(Q)$(CROSS_COMPILE)ld -T $(obj)/sun8i_brom_scatter.scat  -EL  $(resumes-y) -o $(obj)/resumes.elf  -Map $(obj)/resumes.map
+$(obj)/resumes.elf: $(srctree)/$(src)/sun8i_brom_scatter.scat $(resumes-y)
+	$(Q)$(CROSS_COMPILE)ld -T $(srctree)/$(src)/sun8i_brom_scatter.scat -EL $(resumes-y) -o $(obj)/resumes.elf -Map $(obj)/resumes.map
 	$(Q)$(CROSS_COMPILE)objdump -D $(obj)/resumes.elf > $(obj)/resumes.lst
 endif
 
