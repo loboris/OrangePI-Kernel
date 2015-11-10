@@ -1,7 +1,7 @@
 VERSION = 3
 PATCHLEVEL = 4
 SUBLEVEL = 39
-EXTRAVERSION = -01-lobo
+EXTRAVERSION = -02-lobo
 NAME = Saber-toothed Squirrel
 
 # *DOCUMENTATION*
