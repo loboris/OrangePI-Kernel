@@ -141,7 +141,7 @@
  *  ZS_MIN_ALLOC_SIZE and ZS_SIZE_CLASS_DELTA must be multiple of ZS_ALIGN
  *  (reason above)
  */
-#define ZS_SIZE_CLASS_DELTA	16
+#define ZS_SIZE_CLASS_DELTA	(PAGE_SIZE >> 8)
 #define ZS_SIZE_CLASSES		((ZS_MAX_ALLOC_SIZE - ZS_MIN_ALLOC_SIZE) / \
 					ZS_SIZE_CLASS_DELTA + 1)
 
@@ -226,7 +226,7 @@ struct zs_pool {
  * so that USE_PGTABLE_MAPPING is defined. This causes zsmalloc to use
  * page table mapping rather than copying for object mapping.
 */
-#if defined(CONFIG_ARM)
+#if defined(CONFIG_ARM) && !defined(MODULE)
 #define USE_PGTABLE_MAPPING
 #endif
 
@@ -240,7 +240,6 @@ struct mapping_area {
 	enum zs_mapmode vm_mm; /* mapping mode */
 };
 
-
 /* per-cpu VM mapping areas for zspage accesses that cross page boundaries */
 static DEFINE_PER_CPU(struct mapping_area, zs_map_area);
 
@@ -253,6 +252,87 @@ static int is_last_page(struct page *page)
 {
 	return PagePrivate2(page);
 }
+
+/*
+ * A single 'zspage' is composed of many system pages which are
+ * linked together using fields in struct page. This function finds
+ * the first/head page, given any component page of a zspage.
+ */
+static struct page *get_first_page(struct page *page)
+{
+	if (is_first_page(page))
+		return page;
+	else
+		return page->first_page;
+}
+
+static struct page *get_next_page(struct page *page)
+{
+	struct page *next;
+
+	if (is_last_page(page))
+		next = NULL;
+	else if (is_first_page(page))
+		next = (struct page *)page->private;
+	else
+		next = list_entry(page->lru.next, struct page, lru);
+
+	return next;
+}
+
+static void zs_copy_map_object(char *buf, struct page *firstpage,
+				int off, int size)
+{
+	struct page *pages[2];
+	int sizes[2];
+	void *addr;
+
+	pages[0] = firstpage;
+	pages[1] = get_next_page(firstpage);
+	BUG_ON(!pages[1]);
+
+	sizes[0] = PAGE_SIZE - off;
+	sizes[1] = size - sizes[0];
+
+	/* disable page faults to match kmap_atomic() return conditions */
+	pagefault_disable();
+
+	/* copy object to per-cpu buffer */
+	addr = kmap_atomic(pages[0]);
+	memcpy(buf, addr + off, sizes[0]);
+	kunmap_atomic(addr);
+	addr = kmap_atomic(pages[1]);
+	memcpy(buf + sizes[0], addr, sizes[1]);
+	kunmap_atomic(addr);
+}
+
+static void zs_copy_unmap_object(char *buf, struct page *firstpage,
+				int off, int size)
+{
+	struct page *pages[2];
+	int sizes[2];
+	void *addr;
+
+	pages[0] = firstpage;
+	pages[1] = get_next_page(firstpage);
+	BUG_ON(!pages[1]);
+
+	sizes[0] = PAGE_SIZE - off;
+	sizes[1] = size - sizes[0];
+
+	/* copy per-cpu buffer to object */
+	addr = kmap_atomic(pages[0]);
+	memcpy(addr + off, buf, sizes[0]);
+	kunmap_atomic(addr);
+	addr = kmap_atomic(pages[1]);
+	memcpy(addr, buf + sizes[0], sizes[1]);
+	kunmap_atomic(addr);
+
+	/* enable page faults to match kunmap_atomic() return conditions */
+	pagefault_enable();
+}
+
+
 
 static void get_zspage_mapping(struct page *page, unsigned int *class_idx,
 				enum fullness_group *fullness)
@@ -404,34 +484,14 @@ static int get_pages_per_zspage(int class_size)
 	return max_usedpc_order;
 }
 
+
+
 /*
- * A single 'zspage' is composed of many system pages which are
- * linked together using fields in struct page. This function finds
- * the first/head page, given any component page of a zspage.
+ * Encode <page, obj_idx> as a single handle value.
+ * On hardware platforms with physical memory starting at 0x0 the pfn
+ * could be 0 so we ensure that the handle will never be 0 by adjusting the
+ * encoded obj_idx value before encoding.
  */
-static struct page *get_first_page(struct page *page)
-{
-	if (is_first_page(page))
-		return page;
-	else
-		return page->first_page;
-}
-
-static struct page *get_next_page(struct page *page)
-{
-	struct page *next;
-
-	if (is_last_page(page))
-		next = NULL;
-	else if (is_first_page(page))
-		next = (struct page *)page->private;
-	else
-		next = list_entry(page->lru.next, struct page, lru);
-
-	return next;
-}
-
-/* Encode <page, obj_idx> as a single handle value */
 static void *obj_location_to_handle(struct page *page, unsigned long obj_idx)
 {
 	unsigned long handle;
@@ -442,17 +502,21 @@ static void *obj_location_to_handle(struct page *page, unsigned long obj_idx)
 	}
 
 	handle = page_to_pfn(page) << OBJ_INDEX_BITS;
-	handle |= (obj_idx & OBJ_INDEX_MASK);
+	handle |= ((obj_idx + 1) & OBJ_INDEX_MASK);
 
 	return (void *)handle;
 }
 
-/* Decode <page, obj_idx> pair from the given object handle */
+/*
+ * Decode <page, obj_idx> pair from the given object handle. We adjust the
+ * decoded obj_idx back to its original value since it was adjusted in
+ * obj_location_to_handle().
+ */
 static void obj_handle_to_location(unsigned long handle, struct page **page,
 				unsigned long *obj_idx)
 {
 	*page = pfn_to_page(handle >> OBJ_INDEX_BITS);
-	*obj_idx = handle & OBJ_INDEX_MASK;
+	*obj_idx = (handle & OBJ_INDEX_MASK) - 1;
 }
 
 static unsigned long obj_idx_to_offset(struct page *page,
@@ -657,11 +721,8 @@ static inline void __zs_unmap_object(struct mapping_area *area,
 				struct page *pages[2], int off, int size)
 {
 	unsigned long addr = (unsigned long)area->vm_addr;
-	unsigned long end = addr + (PAGE_SIZE * 2);
 
-	flush_cache_vunmap(addr, end);
-	unmap_kernel_range_noflush(addr, PAGE_SIZE * 2);
-	flush_tlb_kernel_range(addr, end);
+	unmap_kernel_range(addr, PAGE_SIZE * 2);
 }
 
 #else /* USE_PGTABLE_MAPPING */
