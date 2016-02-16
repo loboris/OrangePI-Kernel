@@ -76,6 +76,7 @@ static struct w1_master * w1_alloc_dev(u32 id, int slave_count, int slave_ttl,
 
 	INIT_LIST_HEAD(&dev->slist);
 	mutex_init(&dev->mutex);
+	mutex_init(&dev->bus_mutex);
 
 	memcpy(&dev->dev, device, sizeof(struct device));
 	dev_set_name(&dev->dev, "w1_bus_master%u", dev->id);
@@ -126,6 +127,13 @@ int w1_add_master_device(struct w1_bus_master *master)
 	if (!master->write_byte && !master->touch_bit && master->set_pullup) {
 		printk(KERN_ERR "w1_add_master_device: set_pullup requires "
 			"write_byte or touch_bit, disabling\n");
+		master->set_pullup = NULL;
+	}
+
+	if (master->set_pullup && master->bitbang_pullup)
+	{
+		printk(KERN_ERR "w1_add_master_device: set_pullup should not "
+			"be set when bitbang_pullup is used, disabling\n");
 		master->set_pullup = NULL;
 	}
 
