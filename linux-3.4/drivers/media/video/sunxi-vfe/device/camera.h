@@ -85,6 +85,7 @@ struct sensor_info {
   struct v4l2_fract                     tpf; 
   struct sensor_win_size                *current_wins;
   struct flash_dev_info                 *fl_dev_info;
+  u8 clkrc;                             /* Clock divider value */
 };
 
 #endif //__CAMERA__H__

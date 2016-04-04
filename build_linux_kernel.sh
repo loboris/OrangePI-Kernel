@@ -73,7 +73,7 @@ make_kernel() {
 
     echo "Building kernel for OPI-${1} (${2}) ..."
     echo "  Configuring ..."
-    make ARCH=arm CROSS_COMPILE=${cross_comp}- sun8iw7p1smp_lobo_defconfig > ../kbuild_${1}_${2}.log 2>&1
+    make -j $(nproc) ARCH=arm CROSS_COMPILE=${cross_comp}- sun8iw7p1smp_lobo_defconfig > ../kbuild_${1}_${2}.log 2>&1
     if [ $? -ne 0 ]; then
         echo "  Error: KERNEL NOT BUILT."
         exit 1
@@ -94,12 +94,12 @@ make_kernel() {
     # export modules to output
     echo "  Exporting modules ..."
     rm -rf output/lib/*
-    make ARCH=arm CROSS_COMPILE=${cross_comp}- INSTALL_MOD_PATH=output modules_install >> ../kbuild_${1}_${2}.log 2>&1
+    make -j $(nproc) ARCH=arm CROSS_COMPILE=${cross_comp}- INSTALL_MOD_PATH=output modules_install >> ../kbuild_${1}_${2}.log 2>&1
     if [ $? -ne 0 ] || [ ! -f arch/arm/boot/uImage ]; then
         echo "  Error."
     fi
     echo "  Exporting firmware ..."
-    make ARCH=arm CROSS_COMPILE=${cross_comp}- INSTALL_MOD_PATH=output firmware_install >> ../kbuild_${1}_${2}.log 2>&1
+    make -j $(nproc) ARCH=arm CROSS_COMPILE=${cross_comp}- INSTALL_MOD_PATH=output firmware_install >> ../kbuild_${1}_${2}.log 2>&1
     if [ $? -ne 0 ] || [ ! -f arch/arm/boot/uImage ]; then
         echo "  Error."
     fi
@@ -132,7 +132,7 @@ make_kernel() {
 
 if [ "${1}" = "clean" ]; then
     echo "Cleaning..."
-    make ARCH=arm CROSS_COMPILE=${cross_comp}- mrproper > /dev/null 2>&1
+    make -j $(nproc) ARCH=arm CROSS_COMPILE=${cross_comp}- mrproper > /dev/null 2>&1
     if [ $? -ne 0 ]; then
         echo "  Error."
     fi

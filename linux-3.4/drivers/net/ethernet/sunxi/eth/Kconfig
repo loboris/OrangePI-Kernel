@@ -35,13 +35,5 @@ config GETH_PHY_POWER
 	 If external PHY power is exist, and it want to be controled,
 	 select it.  If not, it mean the power of PHY already on.
 
-config GMAC_PHY_POWER
-        bool "External PHY power control"
-	depends on SUNXI_GETH
-	default y
-	---help---
-	 If external PHY power is exist, and it want to be controled,
-	 select it.  If not, it mean the power of PHY already on.
-
 endif
 
