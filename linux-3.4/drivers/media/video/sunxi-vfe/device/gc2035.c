@@ -18,10 +18,9 @@
 #include "camera.h"
 
 
-MODULE_AUTHOR("raymonxiu");
-MODULE_DESCRIPTION("A low-level driver for GalaxyCore gc2035 sensors");
+MODULE_AUTHOR("raymonxiu / leonardo lontra");
+MODULE_DESCRIPTION("A low-level driver for GalaxyCore gc2035 sensors\n\t\tWorks fine with 800x600 / 640x480 / 320x240 @ 20fps");
 MODULE_LICENSE("GPL");
-
 
 
 //for internel driver debug
@@ -45,7 +44,7 @@ MODULE_LICENSE("GPL");
                         }
 
 //define module timing
-#define MCLK              (24*1000*1000)
+#define MCLK              (34*1000*1000)
 #define VREF_POL          V4L2_MBUS_VSYNC_ACTIVE_HIGH
 #define HREF_POL          V4L2_MBUS_HSYNC_ACTIVE_HIGH
 #define CLK_POL           V4L2_MBUS_PCLK_SAMPLE_RISING
@@ -68,7 +67,7 @@ MODULE_LICENSE("GPL");
 /*
  * Our nominal (default) frame rate.
  */
-#define SENSOR_FRAME_RATE 15
+#define SENSOR_FRAME_RATE 20
 
 
 
@@ -680,17 +679,18 @@ static struct regval_list sensor_default_regs[] = {
 /////1600x1200size// 
 {0xfe, 0x00},//
 {0x90, 0x01}, //0x//crop enable
+{0x94, 0x04},
 {0x95, 0x04},  //0x//1600x1200
 {0x96, 0xb0},
 {0x97, 0x06},
 {0x98, 0x40},
 
 {0xfe , 0x03},
+{0x40 , 0x40},  //00
+{0x41 , 0x02}, // Pclk_polarity 
 {0x42 , 0x40}, 
-{0x43 , 0x06}, //output buf width
-{0x41 , 0x02}, // Pclk_polarity
-{0x40 , 0x40},  //00  
-{0x17 , 0x00}, //widv 
+{0x43 , 0x06}, //output buf width 
+{0x17 , 0x01}, //widv 
 {0xfe , 0x00},
 
 ////output DVP/////
@@ -700,28 +700,6 @@ static struct regval_list sensor_default_regs[] = {
 {0xf3  , 0xff},
 {0xf4  , 0x00},
 {0xf5  , 0x30},
-    ////////sabsumple  800X600//////
-{0xfe  , 0x00},	
-{0xb6  , 0x03},
-{0xfa  , 0x00},
-
-{0xc8  , 0x00},//close scaler
-{0x99  , 0x22},// 1/2 subsample
-{0x9a  , 0x07},
-{0x9b  , 0x00},
-{0x9c  , 0x00},
-{0x9d  , 0x00},
-{0x9e  , 0x00},
-{0x9f  , 0x00},
-{0xa0  , 0x00},  
-{0xa1  , 0x00},
-{0xa2  , 0x00},
-
-{0x90  , 0x01},  //crop enable
-{0x95  , 0x02},
-{0x96  , 0x58},
-{0x97  , 0x03},
-{0x98  , 0x20},
 
 #if 1   
 /////////  re zao///
@@ -741,7 +719,8 @@ static struct regval_list sensor_default_regs[] = {
 {0xb0  , 0x88},
 {0x38  , 0x0b},
 {0x39  , 0x30},
-{0xfe  , 0x00},  
+{0xfe  , 0x00},
+
 {0x87  , 0xb0},
 
 //// small  RGB gamma////
@@ -810,7 +789,7 @@ static struct regval_list sensor_uxga_regs[] ={
 
 };
 
-/* 800X600 SVGA,30fps*/
+/* 800X600 SVGA,20fps*/
 static struct regval_list sensor_svga_regs[] =
 {
 {0xfe,0x00},
@@ -820,6 +799,58 @@ static struct regval_list sensor_svga_regs[] =
 
 {0x99,0x22},// 1/2 subsample
 {0x9a,0x07},
+{0x9b,0x00},
+{0x9c,0x00},
+{0x9d,0x00},
+{0x9e,0x00},
+{0x9f,0x00},
+{0xa0,0x00},  
+{0xa1,0x00},
+{0xa2,0x00},
+
+{0x90,0x01},  //crop enable
+{0x95,0x02},
+{0x96,0x58},
+{0x97,0x03},
+{0x98,0x20},
+};
+
+/* 640x480 VGA,20fps*/
+static struct regval_list sensor_vga_regs[] =
+{
+{0xfe,0x00},
+{0xb6,0x03},
+{0xfa,0x00},
+{0xc8,0x02}, //close scaler 
+
+{0x99,0x22},// 1/2 subsample
+{0x9a,0x06},
+{0x9b,0x00},
+{0x9c,0x00},
+{0x9d,0x00},
+{0x9e,0x00},
+{0x9f,0x00},
+{0xa0,0x00},  
+{0xa1,0x00},
+{0xa2,0x00},
+
+{0x90,0x01},  //crop enable
+{0x95,0x02},
+{0x96,0x58},
+{0x97,0x03},
+{0x98,0x20},
+};
+
+/* 320x240 QVGA,20fps*/
+static struct regval_list sensor_qvga_regs[] =
+{
+{0xfe,0x00},
+{0xb6,0x03},
+{0xfa,0x00},
+{0xc8,0x02}, //close scaler 
+
+{0x99,0x44},// 1/2 subsample
+{0x9a,0x06},
 {0x9b,0x00},
 {0x9c,0x00},
 {0x9d,0x00},
@@ -2457,7 +2488,6 @@ sensor_win_sizes[] = {
     .set_size   = NULL,
   },
   /* VGA */
-  /*
   {
     .width      = VGA_WIDTH,
     .height     = VGA_HEIGHT,
@@ -2467,7 +2497,18 @@ sensor_win_sizes[] = {
     .regs_size  = ARRAY_SIZE(sensor_vga_regs),
     .set_size   = NULL,
   },
-  */
+  /* QVGA */
+  {
+    .width      = QVGA_WIDTH,
+    .height     = QVGA_HEIGHT,
+    .hoffset    = 0,
+    .voffset    = 0,
+    .regs       = sensor_qvga_regs,
+    .regs_size  = ARRAY_SIZE(sensor_qvga_regs),
+    .set_size   = NULL,
+  },
+  
+  
 };
 
 #define N_WIN_SIZES (ARRAY_SIZE(sensor_win_sizes))
@@ -2580,7 +2621,7 @@ static int sensor_s_fmt(struct v4l2_subdev *sd,
 	if (ret)
 		return ret;
 
-	if((wsize->width==1600)&&(wsize->height==1200))  //capture mode  >640*480
+	if((wsize->width==UXGA_WIDTH)&&(wsize->height==UXGA_HEIGHT))  //capture mode  >640*480
 	{
 		//	printk(" read  2035 exptime 11111111\n" );
 
@@ -2621,7 +2662,7 @@ static int sensor_s_fmt(struct v4l2_subdev *sd,
  //////////
 
  #if 1
-	if((wsize->width==1600)&&(wsize->height==1200))
+	if((wsize->width==UXGA_WIDTH)&&(wsize->height==UXGA_HEIGHT))
 	{
 
 
