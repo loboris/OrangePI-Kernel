@@ -62,17 +62,14 @@ LOAD arch/arm/mach-sunxi/power/brom/resumes.o
 LOAD arch/arm/mach-sunxi/power/brom/resume_head.o
 OUTPUT(arch/arm/mach-sunxi/power/brom/resumes.elf elf32-littlearm)
 
-.debug_info     0x00000000      0x1da
+.debug_info     0x00000000      0x141
  .debug_info    0x00000000      0x141 arch/arm/mach-sunxi/power/brom/resume_head.o
- .debug_info    0x00000141       0x99 arch/arm/mach-sunxi/power/brom/resumes.o
 
-.debug_abbrev   0x00000000       0x93
+.debug_abbrev   0x00000000       0x7f
  .debug_abbrev  0x00000000       0x7f arch/arm/mach-sunxi/power/brom/resume_head.o
- .debug_abbrev  0x0000007f       0x14 arch/arm/mach-sunxi/power/brom/resumes.o
 
-.debug_line     0x00000000      0x105
+.debug_line     0x00000000       0x7b
  .debug_line    0x00000000       0x7b arch/arm/mach-sunxi/power/brom/resume_head.o
- .debug_line    0x0000007b       0x8a arch/arm/mach-sunxi/power/brom/resumes.o
 
 .debug_str      0x00000000      0x16e
  .debug_str     0x00000000      0x16e arch/arm/mach-sunxi/power/brom/resume_head.o
@@ -93,7 +90,3 @@ OUTPUT(arch/arm/mach-sunxi/power/brom/resumes.elf elf32-littlearm)
                 0x00000000       0x35 arch/arm/mach-sunxi/power/brom/resume_head.o
  .ARM.attributes
                 0x00000035       0x21 arch/arm/mach-sunxi/power/brom/resumes.o
-
-.debug_aranges  0x00000000       0x20
- .debug_aranges
-                0x00000000       0x20 arch/arm/mach-sunxi/power/brom/resumes.o

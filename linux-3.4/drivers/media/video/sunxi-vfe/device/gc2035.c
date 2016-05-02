@@ -2722,6 +2722,7 @@ static int sensor_s_parm(struct v4l2_subdev *sd, struct v4l2_streamparm *parms)
 	struct sensor_info *info = to_state(sd);
 	struct v4l2_fract *tpf = &cp->timeperframe;
 	int div;
+	int clkrc = 1;
 
 	if (parms->type != V4L2_BUF_TYPE_VIDEO_CAPTURE)
 		return -EINVAL;
@@ -2737,10 +2738,11 @@ static int sensor_s_parm(struct v4l2_subdev *sd, struct v4l2_streamparm *parms)
         div = 1;
     else if (div > 8)
         div = 8;
-    info->clkrc = (info->clkrc & 0x80) | div;
+	
+	clkrc = (clkrc & 0x80) | div;
     tpf->numerator = 1;
     tpf->denominator = SENSOR_FRAME_RATE/div;
-    sensor_write(sd, REG_CLKRC, info->clkrc);
+    sensor_write(sd, REG_CLKRC, clkrc);
     return 0;
 }
 
@@ -3029,7 +3031,7 @@ static int sensor_probe(struct i2c_client *client,
 	info->autowb = 1;
 	info->wb = 0;
 	info->clrfx = 0;
-	info->clkrc = 1;	/* 30fps */
+	//info->clkrc = 1;	/* 30fps */
 
 	return 0;
 }
