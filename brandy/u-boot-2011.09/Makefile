@@ -460,15 +460,15 @@ $(obj)u-boot-$(TARGET).bin:	$(obj)u-boot.bin
 		@cp $(obj)u-boot.bin         $(obj)u-boot-$(CONFIG_TARGET_NAME).bin
 		@if [ -z "$(findstring _nor, $(CONFIG_TARGET_NAME))" ]; then \
 			if [ -z "$(findstring $(OTA_TEST_NAME), $(SUNXI_MODE))" ]; then \
-				cp -v $(obj)u-boot-$(CONFIG_TARGET_NAME).bin  $(TOPDIR)/../../tools/pack/chips/$(CONFIG_TARGET_NAME)/bin/u-boot-$(CONFIG_TARGET_NAME).bin; \
+				cp -v $(obj)u-boot-$(CONFIG_TARGET_NAME).bin  $(TOPDIR)/../../chips/$(CONFIG_TARGET_NAME)/bin/u-boot-$(CONFIG_TARGET_NAME).bin; \
 			else \
-				cp -v $(obj)u-boot-$(CONFIG_TARGET_NAME).bin  $(TOPDIR)/../../tools/pack/chips/$(CONFIG_TARGET_NAME)/bin/u-boot-$(CONFIG_TARGET_NAME)-$(SUNXI_MODE).bin; \
+				cp -v $(obj)u-boot-$(CONFIG_TARGET_NAME).bin  $(TOPDIR)/../../chips/$(CONFIG_TARGET_NAME)/bin/u-boot-$(CONFIG_TARGET_NAME)-$(SUNXI_MODE).bin; \
 			fi \
 		else	\
 			if [ -z "$(findstring $(OTA_TEST_NAME), $(SUNXI_MODE))" ]; then \
-				cp -v $(obj)u-boot-$(CONFIG_TARGET_NAME).bin  $(TOPDIR)/../../tools/pack/chips/$(CONFIG_PLATFORM_NAME)/bin/u-boot-spinor-$(CONFIG_PLATFORM_NAME).bin; \
+				cp -v $(obj)u-boot-$(CONFIG_TARGET_NAME).bin  $(TOPDIR)/../../chips/$(CONFIG_PLATFORM_NAME)/bin/u-boot-spinor-$(CONFIG_PLATFORM_NAME).bin; \
 			else \
-				cp -v $(obj)u-boot-$(CONFIG_TARGET_NAME).bin  $(TOPDIR)/../../tools/pack/chips/$(CONFIG_PLATFORM_NAME)/bin/u-boot-spinor-$(CONFIG_PLATFORM_NAME)-$(SUNXI_MODE).bin; \
+				cp -v $(obj)u-boot-$(CONFIG_TARGET_NAME).bin  $(TOPDIR)/../../chips/$(CONFIG_PLATFORM_NAME)/bin/u-boot-spinor-$(CONFIG_PLATFORM_NAME)-$(SUNXI_MODE).bin; \
 			fi \
 		fi
 
@@ -495,41 +495,41 @@ spl_lib: $(TIMESTAMP_FILE) $(VERSION_FILE) depend
 fes:    spl_lib depend
 		$(MAKE) -C sunxi_spl/fes_init all
 		@$(TOPDIR)/tools/gen_check_sum sunxi_spl/fes_init/fes1.bin fes1_$(CONFIG_TARGET_NAME).bin > /dev/null
-		@cp -v fes1_$(CONFIG_TARGET_NAME).bin $(TOPDIR)/../../tools/pack/chips/$(CONFIG_TARGET_NAME)/bin/fes1_$(CONFIG_TARGET_NAME).bin
+		@cp -v fes1_$(CONFIG_TARGET_NAME).bin $(TOPDIR)/../../chips/$(CONFIG_TARGET_NAME)/bin/fes1_$(CONFIG_TARGET_NAME).bin
 
 boot0:  spl_lib depend
 		$(MAKE) -C sunxi_spl/boot0 all
 ifdef CONFIG_STORAGE_MEDIA_NAND
 		@$(TOPDIR)/tools/gen_check_sum sunxi_spl/boot0/boot0_nand.bin boot0_nand_$(TARGET).bin > /dev/null
 		@if [ -z "$(findstring $(OTA_TEST_NAME), $(SUNXI_MODE))" ]; then \
-			cp -v boot0_nand_$(CONFIG_TARGET_NAME).bin $(TOPDIR)/../../tools/pack/chips/$(CONFIG_TARGET_NAME)/bin/boot0_nand_$(CONFIG_TARGET_NAME).bin; \
+			cp -v boot0_nand_$(CONFIG_TARGET_NAME).bin $(TOPDIR)/../../chips/$(CONFIG_TARGET_NAME)/bin/boot0_nand_$(CONFIG_TARGET_NAME).bin; \
 		else \
-			cp -v boot0_nand_$(CONFIG_TARGET_NAME).bin $(TOPDIR)/../../tools/pack/chips/$(CONFIG_TARGET_NAME)/bin/boot0_nand_$(CONFIG_TARGET_NAME)-$(SUNXI_MODE).bin; \
+			cp -v boot0_nand_$(CONFIG_TARGET_NAME).bin $(TOPDIR)/../../chips/$(CONFIG_TARGET_NAME)/bin/boot0_nand_$(CONFIG_TARGET_NAME)-$(SUNXI_MODE).bin; \
 		fi
 endif
 ifdef CONFIG_STORAGE_MEDIA_MMC
 		@$(TOPDIR)/tools/gen_check_sum sunxi_spl/boot0/boot0_sdcard.bin boot0_sdcard_$(TARGET).bin > /dev/null
 		@if [ -z "$(findstring $(OTA_TEST_NAME), $(SUNXI_MODE))" ]; then \
-			cp -v boot0_sdcard_$(CONFIG_TARGET_NAME).bin $(TOPDIR)/../../tools/pack/chips/$(CONFIG_TARGET_NAME)/bin/boot0_sdcard_$(CONFIG_TARGET_NAME).bin; \
+			cp -v boot0_sdcard_$(CONFIG_TARGET_NAME).bin $(TOPDIR)/../../chips/$(CONFIG_TARGET_NAME)/bin/boot0_sdcard_$(CONFIG_TARGET_NAME).bin; \
 		else \
-			cp -v boot0_sdcard_$(CONFIG_TARGET_NAME).bin $(TOPDIR)/../../tools/pack/chips/$(CONFIG_TARGET_NAME)/bin/boot0_sdcard_$(CONFIG_TARGET_NAME)-$(SUNXI_MODE).bin; \
+			cp -v boot0_sdcard_$(CONFIG_TARGET_NAME).bin $(TOPDIR)/../../chips/$(CONFIG_TARGET_NAME)/bin/boot0_sdcard_$(CONFIG_TARGET_NAME)-$(SUNXI_MODE).bin; \
 		fi
 endif
 ifdef CONFIG_STORAGE_MEDIA_SPINOR
 		@$(TOPDIR)/tools/gen_check_sum sunxi_spl/boot0/boot0_spinor.bin boot0_spinor_$(TARGET).bin > /dev/null
 		@if [ -z "$(findstring $(OTA_TEST_NAME), $(SUNXI_MODE))" ]; then \
-			cp -v boot0_spinor_$(CONFIG_TARGET_NAME).bin $(TOPDIR)/../../tools/pack/chips/$(CONFIG_TARGET_NAME)/bin/boot0_spinor_$(CONFIG_TARGET_NAME).bin; \
+			cp -v boot0_spinor_$(CONFIG_TARGET_NAME).bin $(TOPDIR)/../../chips/$(CONFIG_TARGET_NAME)/bin/boot0_spinor_$(CONFIG_TARGET_NAME).bin; \
 		else \
-			cp -v boot0_spinor_$(CONFIG_TARGET_NAME).bin $(TOPDIR)/../../tools/pack/chips/$(CONFIG_TARGET_NAME)/bin/boot0_spinor_$(CONFIG_TARGET_NAME)-$(SUNXI_MODE).bin; \
+			cp -v boot0_spinor_$(CONFIG_TARGET_NAME).bin $(TOPDIR)/../../chips/$(CONFIG_TARGET_NAME)/bin/boot0_spinor_$(CONFIG_TARGET_NAME)-$(SUNXI_MODE).bin; \
 		fi
 endif
 sboot:  spl_lib depend
 		$(MAKE) -C sunxi_spl/sbrom all
 		@$(TOPDIR)/tools/gen_check_sum sunxi_spl/sbrom/sboot.bin sboot_$(CONFIG_TARGET_NAME).bin > /dev/null
 		@if [ -z "$(findstring $(OTA_TEST_NAME), $(SUNXI_MODE))" ]; then \
-			cp -v sboot_$(CONFIG_TARGET_NAME).bin $(TOPDIR)/../../tools/pack/chips/$(CONFIG_TARGET_NAME)/bin/sboot_$(CONFIG_TARGET_NAME).bin; \
+			cp -v sboot_$(CONFIG_TARGET_NAME).bin $(TOPDIR)/../../chips/$(CONFIG_TARGET_NAME)/bin/sboot_$(CONFIG_TARGET_NAME).bin; \
 		else \
-			cp -v sboot_$(CONFIG_TARGET_NAME).bin $(TOPDIR)/../../tools/pack/chips/$(CONFIG_TARGET_NAME)/bin/sboot_$(CONFIG_TARGET_NAME)-$(SUNXI_MODE).bin; \
+			cp -v sboot_$(CONFIG_TARGET_NAME).bin $(TOPDIR)/../../chips/$(CONFIG_TARGET_NAME)/bin/sboot_$(CONFIG_TARGET_NAME)-$(SUNXI_MODE).bin; \
 		fi
 
 ifeq ($(CONFIG_SUNXI_SECURE_SYSTEM),y)
