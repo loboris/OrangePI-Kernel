@@ -356,10 +356,10 @@ Disassembly of section .comment:
 Disassembly of section .ARM.attributes:
 
 00000000 <.ARM.attributes>:
-   0:	00003241 	andeq	r3, r0, r1, asr #4
+   0:	00003041 	andeq	r3, r0, r1, asr #32
    4:	61656100 	cmnvs	r5, r0, lsl #2
    8:	01006962 	tsteq	r0, r2, ror #18
-   c:	00000028 	andeq	r0, r0, r8, lsr #32
+   c:	00000026 	andeq	r0, r0, r6, lsr #32
   10:	412d3705 	teqmi	sp, r5, lsl #14
   14:	070a0600 	streq	r0, [sl, -r0, lsl #12]
   18:	09010841 	stmdbeq	r1, {r0, r6, fp}
@@ -367,6 +367,6 @@ Disassembly of section .ARM.attributes:
   20:	15011404 	strne	r1, [r1, #-1028]	; 0x404
   24:	18031701 	stmdane	r3, {r0, r8, r9, sl, ip}
   28:	1b021a01 	blne	86834 <__bss_end+0x86758>
-  2c:	22021e03 	andcs	r1, r2, #48	; 0x30
+  2c:	2c021e03 	stccs	14, cr1, [r2], {3}
   30:	Address 0x00000030 is out of bounds.
 

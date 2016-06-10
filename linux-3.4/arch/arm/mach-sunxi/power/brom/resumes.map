@@ -85,8 +85,8 @@ OUTPUT(arch/arm/mach-sunxi/power/brom/resumes.elf elf32-littlearm)
                 0x00000000        0x0 arch/arm/mach-sunxi/power/brom/resume_head.o
 
 .ARM.attributes
-                0x00000000       0x33
+                0x00000000       0x31
  .ARM.attributes
-                0x00000000       0x35 arch/arm/mach-sunxi/power/brom/resume_head.o
+                0x00000000       0x33 arch/arm/mach-sunxi/power/brom/resume_head.o
  .ARM.attributes
-                0x00000035       0x21 arch/arm/mach-sunxi/power/brom/resumes.o
+                0x00000033       0x21 arch/arm/mach-sunxi/power/brom/resumes.o
