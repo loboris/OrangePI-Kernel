@@ -3,7 +3,7 @@ KERNEL_DIR	?= /lib/modules/$(KERNELRELEASE)/build
 PWD		:= $(shell pwd)
 obj-m		:= v4l2loopback.o
 ARCH := arm
-CROSS_COMPILE := ../brandy/gcc-linaro/bin/arm-linux-gnueabi-
+CROSS_COMPILE := ../../brandy/gcc-linaro/bin/arm-linux-gnueabi-
 KVER  := 3.4
 KSRC:= ../linux-3.4/
 
