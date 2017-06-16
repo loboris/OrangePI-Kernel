@@ -102,6 +102,7 @@ module_param(act_slave,uint, S_IRUGO|S_IWUSR);
 module_param(define_sensor_list,uint, S_IRUGO|S_IWUSR);
 module_param(vfe_i2c_dbg,uint, S_IRUGO|S_IWUSR);
 module_param(vips,uint, S_IRUGO|S_IWUSR);
+
 static ssize_t vfe_dbg_en_show(struct device *dev,
 		    struct device_attribute *attr, char *buf)
 {
@@ -187,6 +188,7 @@ static ssize_t isp_reparse_flag_store(struct device *dev,
 	}
 	return count;
 }
+
 static ssize_t vfe_dbg_dump_show(struct device *dev,
 		    struct device_attribute *attr, char *buf)
 {
@@ -3946,7 +3948,7 @@ static int vfe_open(struct file *file)
       for (i = 0; i < dev->dev_qty; i++) {
         if (!dev->device_valid_flag[i]) break;
       }
-      i -= 1;
+      if (i > 0) i -= 1;
       ret = internal_s_input(dev , i);
       if (!ret) vfe_print("vfe set a valid input %d\n", i);
     }
