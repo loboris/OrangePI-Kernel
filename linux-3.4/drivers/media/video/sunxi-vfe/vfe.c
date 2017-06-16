@@ -503,7 +503,7 @@ static int isp_resource_request(struct vfe_dev *dev)
 				dev->isp_tbl_addr[i].isp_gamma_tbl_paddr = (void*)(pa_base + ISP_GAMMA_MEM_OFS);
 				dev->isp_tbl_addr[i].isp_gamma_tbl_dma_addr = (void*)(dma_base + ISP_GAMMA_MEM_OFS);
 				dev->isp_tbl_addr[i].isp_gamma_tbl_vaddr = (void*)(va_base + ISP_GAMMA_MEM_OFS);
-				
+
 				dev->isp_tbl_addr[i].isp_linear_tbl_paddr = (void*)(pa_base + ISP_LINEAR_MEM_OFS);
 				dev->isp_tbl_addr[i].isp_linear_tbl_dma_addr = (void*)(dma_base + ISP_LINEAR_MEM_OFS);
 				dev->isp_tbl_addr[i].isp_linear_tbl_vaddr = (void*)(va_base + ISP_LINEAR_MEM_OFS);
@@ -527,7 +527,7 @@ static int isp_resource_request(struct vfe_dev *dev)
 				dev->isp_tbl_addr[i].isp_drc_tbl_paddr = (void*)(pa_base + ISP_DRC_MEM_OFS);
 				dev->isp_tbl_addr[i].isp_drc_tbl_dma_addr = (void*)(dma_base + ISP_DRC_MEM_OFS);
 				dev->isp_tbl_addr[i].isp_drc_tbl_vaddr = (void*)(va_base + ISP_DRC_MEM_OFS);
-				
+
 				dev->isp_tbl_addr[i].isp_disc_tbl_paddr = (void*)(pa_base + ISP_DISC_MEM_OFS);
 				dev->isp_tbl_addr[i].isp_disc_tbl_dma_addr = (void*)(dma_base + ISP_DISC_MEM_OFS);
 				dev->isp_tbl_addr[i].isp_disc_tbl_vaddr = (void*)(va_base + ISP_DISC_MEM_OFS);
@@ -1803,7 +1803,7 @@ static enum v4l2_mbus_pixelcode *try_fmt_internal(struct vfe_dev *dev,struct v4l
 
 	/*judge the resolution*/
 	if(f->fmt.pix.width > MAX_WIDTH || f->fmt.pix.height > MAX_HEIGHT) {
-		vfe_err("size is too large,automatically set to maximum!\n");
+		// vfe_err("size is too large,automatically set to maximum!\n");
 		f->fmt.pix.width = MAX_WIDTH;
 		f->fmt.pix.height = MAX_HEIGHT;
 	}
@@ -2342,13 +2342,13 @@ static int vidioc_s_fmt_vid_cap(struct file *file, void *priv,
 		isp_size[ROT_CH].width = 0;
 		isp_fmt[ROT_CH] = PIX_FMT_NONE;
 	}
-	
+
 	if(f->fmt.pix.subchannel != NULL)	{
 		dev->isp_gen_set_pt->double_ch_flag = 1;
 	} else {
 		dev->isp_gen_set_pt->double_ch_flag = 0;
 	}
-  
+
 	//dev->buf_byte_size = bsp_isp_set_size(isp_fmt,&ob_black_size, &ob_valid_size, &isp_size[MAIN_CH],&isp_size[ROT_CH],&ob_start,&isp_size[SUB_CH]);
 	size_settings.full_size = isp_size[MAIN_CH];
 	size_settings.scale_size = isp_size[SUB_CH];
@@ -2651,7 +2651,7 @@ static int vidioc_enum_input(struct file *file, void *priv,
 {
 	struct vfe_dev *dev = video_drvdata(file);
 	if (inp->index > dev->dev_qty-1) {
-		vfe_err("input index(%d) > dev->dev_qty(%d)-1 invalid!\n", inp->index, dev->dev_qty);
+		// vfe_err("input index(%d) > dev->dev_qty(%d)-1 invalid!\n", inp->index, dev->dev_qty);
 		return -EINVAL;
 	}
 	if (0 == dev->device_valid_flag[inp->index]) {
@@ -3172,8 +3172,8 @@ static int vidioc_g_ctrl(struct file *file, void *priv,
         ctrl->value = dev->ctrl_para.exp_auto_pri;
         break;
       case V4L2_CID_FOCUS_ABSOLUTE:
-        ctrl->value = CLIP(((dev->isp_3a_result_pt->real_vcm_pos - dev->isp_gen_set_pt->stat.vcm_cfg.vcm_min_code ) << 10) / 
-        			(dev->isp_gen_set_pt->stat.vcm_cfg.vcm_max_code - 
+        ctrl->value = CLIP(((dev->isp_3a_result_pt->real_vcm_pos - dev->isp_gen_set_pt->stat.vcm_cfg.vcm_min_code ) << 10) /
+        			(dev->isp_gen_set_pt->stat.vcm_cfg.vcm_max_code -
         			dev->isp_gen_set_pt->stat.vcm_cfg.vcm_min_code ), 0, 1023);
         break;
       case V4L2_CID_FOCUS_RELATIVE:
@@ -3940,7 +3940,19 @@ static int vfe_open(struct file *file)
 	{
 		vfe_print("vfe_open ok\n");
 		vfe_opened_num ++;
+
+    if (dev->input == -1) {
+      int i;
+      for (i = 0; i < dev->dev_qty; i++) {
+        if (!dev->device_valid_flag[i]) break;
+      }
+      i -= 1;
+      ret = internal_s_input(dev , i);
+      if (!ret) vfe_print("vfe set a valid input %d\n", i);
+    }
+
 	}
+
 	return ret;
 }
 
@@ -5180,7 +5192,7 @@ static int vfe_probe(struct platform_device *pdev)
 		ret = bsp_mipi_csi_set_base_addr(dev->mipi_sel, 0);
 		if(ret < 0)
 			goto free_resource;
-		ret = bsp_mipi_dphy_set_base_addr(dev->mipi_sel, 0);    
+		ret = bsp_mipi_dphy_set_base_addr(dev->mipi_sel, 0);
 		if(ret < 0)
 			goto free_resource;
 #endif
@@ -5662,5 +5674,3 @@ module_exit(vfe_exit);
 MODULE_AUTHOR("raymonxiu");
 MODULE_LICENSE("Dual BSD/GPL");
 MODULE_DESCRIPTION("Video front end driver for sunxi");
-
-
