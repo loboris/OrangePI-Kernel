@@ -342,7 +342,7 @@ static int cpu_budget_apply_cooling(struct cpu_budget_cooling_device *cpu_budget
         if(instance->tz->temperature > temperature)
             temperature = instance->tz->temperature;
     }
-    pr_info("CPU Budget: Temperature: %u Limit state:%lu item[%d,%d,%d,%d %d]\n",temperature,cooling_state,
+    pr_debug("CPU Budget: Temperature: %u Limit state:%lu item[%d,%d,%d,%d %d]\n",temperature,cooling_state,
     cpu_budget_device->cluster0_freq_limit,
     cpu_budget_device->cluster0_num_limit ,
     cpu_budget_device->cluster1_freq_limit ,
@@ -446,7 +446,7 @@ static int cpufreq_thermal_notifier(struct notifier_block *nb,
         {
             cpufreq_verify_within_limits(policy, min_freq, max_freq);
 			policy->user_policy.max = policy->max;
-            pr_info("CPU Budget:update CPU %d cpufreq max to %lu min to %lu\n",policy->cpu,max_freq, min_freq);
+            pr_debug("CPU Budget:update CPU %d cpufreq max to %lu min to %lu\n",policy->cpu,max_freq, min_freq);
         }
     }
 	return 0;
