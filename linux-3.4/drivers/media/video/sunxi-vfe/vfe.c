@@ -43,6 +43,7 @@
 #include "platform/vfe_resource.h"
 #include "utility/sensor_info.h"
 #include "utility/vfe_io.h"
+
 #define IS_FLAG(x,y) (((x)&(y)) == y)
 #define CLIP_MAX(x,max) ((x) > max ? max : x )
 
@@ -1949,10 +1950,12 @@ static enum v4l2_mbus_pixelcode *try_fmt_internal(struct vfe_dev *dev,struct v4l
 
   f->fmt.pix.width = ccm_fmt.width;
   f->fmt.pix.height = ccm_fmt.height;
+  f->fmt.pix.sizeimage = ccm_fmt.height * f->fmt.pix.bytesperline;
 
   vfe_dbg(0,"bus pixel code = %x at %s\n",*bus_pix_code,__func__);
   vfe_dbg(0,"pix->width = %d at %s\n",f->fmt.pix.width,__func__);
   vfe_dbg(0,"pix->height = %d at %s\n",f->fmt.pix.height,__func__);
+  vfe_dbg(0,"pix->sizeimage = %d at %s\n",f->fmt.pix.sizeimage,__func__);
 
   return bus_pix_code;
 }
@@ -3052,7 +3055,8 @@ static int vidioc_queryctrl(struct file *file, void *priv,
     {
       if(qc->id != V4L2_CID_GAIN)
       {
-        vfe_warn("v4l2 sub device queryctrl unsuccess,id = %x!\n",qc->id);
+        vfe_dbg(0, "v4l2 sub device queryctrl unsuccess,id = %x!\n",qc->id);
+
       }
     }
   }
@@ -3950,7 +3954,7 @@ static int vfe_open(struct file *file)
       }
       if (i > 0) i -= 1;
       ret = internal_s_input(dev , i);
-      if (!ret) vfe_print("vfe set a valid input %d\n", i);
+      if (!ret) vfe_dbg(0, "vfe set a valid input %d\n", i);
     }
 
 	}
