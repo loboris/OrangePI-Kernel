@@ -4859,7 +4859,7 @@ static int sensor_try_fmt_internal(struct v4l2_subdev *sd,
     int i;
     bool found_hres = false;
     struct sensor_resolutions_struct *res;
-    for (i = 0; i < N_RESOLUTIONS; i++)
+    for (i = 0; i < N_RESOLUTIONS-1; i++)
     {
       if (found_hres) break;
       res = &sensor_resolutions[i];
@@ -5091,7 +5091,7 @@ static int sensor_s_fmt(struct v4l2_subdev *sd, struct v4l2_mbus_framefmt *fmt)/
   int i, nsize, index;
   bool found_hres = false;
   struct sensor_resolutions_struct *res;
-  for (i = 0; i < N_RESOLUTIONS; i++)
+  for (i = 0; i < N_RESOLUTIONS-1; i++)
   {
     if (found_hres) break;
     res = &sensor_resolutions[i];
@@ -5178,7 +5178,7 @@ static int sensor_s_parm(struct v4l2_subdev *sd, struct v4l2_streamparm *parms)
   {
     int index, i, ret;
     // finds compatible framerate
-    for (index = 0; index < N_RESOLUTIONS; index++)
+    for (index = 0; index < N_RESOLUTIONS-1; index++)
     {
       if (sensor_resolutions[index].framerate >= tpf->denominator) break;
     }
