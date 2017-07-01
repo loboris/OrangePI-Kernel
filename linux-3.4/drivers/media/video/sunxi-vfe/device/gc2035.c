@@ -3971,14 +3971,14 @@ static struct sensor_format_struct
 		.regs_size = ARRAY_SIZE(sensor_fmt_yuv422_vyuy),
 		.bpp		= 2,
 	},
-  // when try set format as bgr24 for example, this format was returned
-	{
-		.desc		= "Raw RGB Bayer",
-		.mbus_code	= V4L2_MBUS_FMT_SBGGR8_1X8,//linux-3.0
-		.regs 		= sensor_fmt_raw,
-		.regs_size = ARRAY_SIZE(sensor_fmt_raw),
-		.bpp		= 1
-	},
+  // NOTE: when trying set fmt, like V4L2_PIX_FMT_{BGR24,SGBRG8}, driver sets BGGR 8bits format and causes segmentation fault
+	// {
+	// 	.desc		= "RAW Bayer BGGR 8bit",
+	// 	.mbus_code	= V4L2_MBUS_FMT_SBGGR8_1X8,//linux-3.0
+	// 	.regs 		= sensor_fmt_raw,
+	// 	.regs_size = ARRAY_SIZE(sensor_fmt_raw),
+	// 	.bpp		= 1
+	// },
 };
 #define N_FMTS ARRAY_SIZE(sensor_formats)
 
