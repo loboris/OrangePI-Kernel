@@ -495,7 +495,7 @@ CONFIG_ARM_FLUSH_CONSOLE_ON_RESTART=y
 # CONFIG_USE_OF is not set
 CONFIG_ZBOOT_ROM_TEXT=0
 CONFIG_ZBOOT_ROM_BSS=0
-CONFIG_CMDLINE="earlyprintk=ttyS0,115200 loglevel=1 initcall_debug=0 console=ttyS0,115200 console=tty0 fsck.mode=force fsck.repair=yes init=/init ipv6.disable=1 kernel.nohalt kernel.panic=5"
+CONFIG_CMDLINE="rootwait ro consoleblank=0 enforcing=0 elevator=deadline console=tty1 fsck.mode=auto fsck.repair=yes init=/init ipv6.disable=1 kernel.nohalt kernel.panic=5"
 # CONFIG_CMDLINE_FROM_BOOTLOADER is not set
 # CONFIG_CMDLINE_EXTEND is not set
 CONFIG_CMDLINE_FORCE=y
