@@ -1013,7 +1013,8 @@ CONFIG_MAC80211_RC_DEFAULT="minstrel_ht"
 CONFIG_MAC80211_LEDS=y
 # CONFIG_MAC80211_DEBUGFS is not set
 # CONFIG_MAC80211_DEBUG_MENU is not set
-# CONFIG_WIMAX is not set
+CONFIG_WIMAX=m
+CONFIG_WIMAX_DEBUG_LEVEL=8
 # CONFIG_RFKILL is not set
 # CONFIG_NET_9P is not set
 # CONFIG_CAIF is not set
@@ -1339,11 +1340,14 @@ CONFIG_ZD1211RW=m
 # CONFIG_MWIFIEX is not set
 CONFIG_RTL8188EU=m
 CONFIG_RTL8189ES=m
+CONFIG_RTL8189FS=m
 CONFIG_RTL8723BS=m
 
 #
-# Enable WiMAX (Networking options) to see the WiMAX drivers
+# WiMAX Wireless Broadband devices
 #
+# CONFIG_WIMAX_I2400M_USB is not set
+# CONFIG_WIMAX_I2400M_SDIO is not set
 # CONFIG_WAN is not set
 # CONFIG_ISDN is not set
 
