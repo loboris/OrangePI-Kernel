@@ -58,8 +58,8 @@
 #define WDT_FUNC	TO_WHOLE_SYSTEM
 #endif /* CONFIG_ARCH_SUN9I */
 
-#define MAX_TIMEOUT 		15 	/* max 15 seconds */
-#define WATCHDOG_NOWAYOUT   1
+#define MAX_TIMEOUT 		16 	/* max 16 seconds */
+#define WATCHDOG_NOWAYOUT   0
 
 static struct platform_device *platform_device;
 static bool is_active, expect_release;

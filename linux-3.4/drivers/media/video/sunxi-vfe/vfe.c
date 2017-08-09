@@ -1404,17 +1404,17 @@ isp_exp_handle:
 			bsp_csi_int_disable(dev->vip_sel, dev->cur_ch,CSI_INT_FRAME_DONE);
 		if (dev->first_flag == 0) {
 			dev->first_flag++;
-			vfe_print("capture video mode!\n");
+			vfe_dbg(0, "capture video mode!\n");
 			goto set_isp_stat_addr;
 		}
 		if (dev->first_flag == 1) {
 			dev->first_flag++;
-			vfe_print("capture video first frame done!\n");
+			vfe_dbg(0, "capture video first frame done!\n");
 		}
 
 		//video buffer handle:
 		if ((&dma_q->active) == dma_q->active.next->next->next) {
-			vfe_warn("Only two buffer left for csi\n");
+			vfe_dbg(0, "Only two buffer left for csi\n");
 			dev->first_flag=0;
 			goto unlock;
 		}
@@ -1422,13 +1422,13 @@ isp_exp_handle:
 
 		/* Nobody is waiting on this buffer*/
 		if (!waitqueue_active(&buf->vb.done)) {
-			vfe_warn(" Nobody is waiting on this video buffer,buf = 0x%p\n",buf);
+			vfe_dbg(0, " Nobody is waiting on this video buffer,buf = 0x%p\n",buf);
 		}
 		list_del(&buf->vb.queue);
 		do_gettimeofday(&buf->vb.ts);
 		buf->vb.field_count++;
 
-		vfe_dbg(2,"video buffer frame interval = %ld\n",buf->vb.ts.tv_sec*1000000+buf->vb.ts.tv_usec - (dev->sec*1000000+dev->usec));
+		vfe_dbg(0,"video buffer frame interval = %ld\n",buf->vb.ts.tv_sec*1000000+buf->vb.ts.tv_usec - (dev->sec*1000000+dev->usec));
 		dev->sec = buf->vb.ts.tv_sec;
 		dev->usec = buf->vb.ts.tv_usec;
 		dev->ms += jiffies_to_msecs(jiffies - dev->jiffies);
@@ -1572,7 +1572,7 @@ static int buffer_setup(struct videobuf_queue *vq, unsigned int *count, unsigned
 		}
 	}
 
-	vfe_print("%s, buffer count=%d, size=%d\n", __func__,*count, *size);
+	vfe_dbg(0, "%s, buffer count=%d, size=%d\n", __func__,*count, *size);
 
 	return 0;
 }
@@ -2459,7 +2459,7 @@ static int vidioc_dqbuf(struct file *file, void *priv, struct v4l2_buffer *p)
 {
 	int ret = 0;
 	struct vfe_dev *dev = video_drvdata(file);
-	vfe_dbg(2,"vidioc dqbuf\n");
+	vfe_dbg(0,"vidioc dqbuf\n");
 	ret = videobuf_dqbuf(&dev->vb_vidq, p, file->f_flags & O_NONBLOCK);
 	//if (dev->isp_3a_result_pt != NULL && dev->is_bayer_raw)
 	//{
@@ -2588,7 +2588,7 @@ static int vidioc_streamoff(struct file *file, void *priv, enum v4l2_buf_type i)
   mutex_lock(&dev->stream_lock);
   vfe_dbg(0,"video stream off\n");
   if (!vfe_is_generating(dev)) {
-    vfe_err("stream has been already off\n");
+    vfe_dbg(0, "stream has been already off\n");
     ret = 0;
     goto streamoff_unlock;
   }
@@ -2725,12 +2725,12 @@ static int internal_s_input(struct vfe_dev *dev, unsigned int i)
 	if(get_sensor_info(dev->ccm_cfg[i]->ccm, &sensor_info) == 0)
 	{
 		os_clk_set_rate(dev->clock.vfe_core_clk, sensor_info.core_clk_for_sensor);
-		vfe_print("Set vfe core clk = %d, after Set vfe core clk = %ld \n",sensor_info.core_clk_for_sensor, clk_get_rate(dev->clock.vfe_core_clk));
+		vfe_dbg(0, "Set vfe core clk = %d, after Set vfe core clk = %ld \n",sensor_info.core_clk_for_sensor, clk_get_rate(dev->clock.vfe_core_clk));
 	}
 	else
 	{
 		os_clk_set_rate(dev->clock.vfe_core_clk, VFE_CORE_CLK_RATE);
-		vfe_warn("Not find this sensor info, Set vfe core clk = %d, after Set vfe core clk = %ld \n",VFE_CORE_CLK_RATE, clk_get_rate(dev->clock.vfe_core_clk));
+		vfe_dbg(0, "Not find this sensor info, Set vfe core clk = %d, after Set vfe core clk = %ld \n",VFE_CORE_CLK_RATE, clk_get_rate(dev->clock.vfe_core_clk));
 	}
 
 	//alternate isp setting
@@ -3885,14 +3885,14 @@ static unsigned int vfe_poll(struct file *file, struct poll_table_struct *wait)
 void vfe_clk_open(struct vfe_dev *dev)
 {
 	//hardware
-	vfe_print("..........................vfe clk open!.......................\n");
+	vfe_dbg(0, "..........................vfe clk open!.......................\n");
 	vfe_dphy_clk_set(dev,DPHY_CLK);
 	vfe_clk_enable(dev);
 	vfe_reset_disable(dev);
 }
 void vfe_clk_close(struct vfe_dev *dev)
 {
-	vfe_print("..........................vfe clk close!.......................\n");
+	vfe_dbg(0, "..........................vfe clk close!.......................\n");
 	vfe_clk_disable(dev);
 	if(vfe_opened_num < 2)
 	{
@@ -3905,7 +3905,7 @@ static int vfe_open(struct file *file)
 	struct vfe_dev *dev = video_drvdata(file);
 	int ret;//,input_num;
 
-	vfe_print("vfe_open\n");
+	vfe_dbg(0, "vfe_open\n");
 	if (vfe_is_opened(dev)) {
 		vfe_err("device open busy\n");
 		ret = -EBUSY;
@@ -3940,11 +3940,11 @@ static int vfe_open(struct file *file)
 	open_end:
 	if (ret != 0){
 		//up(&dev->standby_seq_sema);
-		vfe_print("vfe_open busy\n");
+		vfe_dbg(0, "vfe_open busy\n");
 	}
 	else
 	{
-		vfe_print("vfe_open ok\n");
+		vfe_dbg(0, "vfe_open ok\n");
 		vfe_opened_num ++;
 
     if (dev->input == -1) {
@@ -3967,7 +3967,7 @@ static int vfe_close(struct file *file)
 	struct vfe_dev *dev = video_drvdata(file);
 	int ret;
 
-	vfe_print("vfe_close\n");
+	vfe_dbg(0, "vfe_close\n");
 	//device
 	vfe_stop_generating(dev);
 	if(dev->vfe_s_input_flag == 1)
@@ -4024,7 +4024,7 @@ static int vfe_close(struct file *file)
 	vfe_stop_opened(dev);
 	dev->ctrl_para.prev_exp_line = 0;
 	dev->ctrl_para.prev_ana_gain = 1;
-	vfe_print("vfe_close end\n");
+	vfe_dbg(0, "vfe_close end\n");
 	up(&dev->standby_seq_sema);
 	return 0;
 }

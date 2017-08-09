@@ -1473,7 +1473,7 @@ u8 rtw_check_invalid_mac_address(u8 *mac_addr, u8 check_local_bit)
 			goto func_exit;
 		}
 	}
-
+    
 func_exit:
 	return res;
 }

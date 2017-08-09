@@ -43,7 +43,8 @@ enum {
 	DEBUG_FREQ = 1U << 0,
 	DEBUG_SUSPEND = 1U << 1,
 };
-static int debug_mask = DEBUG_FREQ | DEBUG_SUSPEND;
+// static int debug_mask = DEBUG_FREQ | DEBUG_SUSPEND;
+static int debug_mask = 0;
 module_param(debug_mask, int, S_IRUGO | S_IWUSR | S_IWGRP);
 #define DDRFREQ_DBG(mask,format,args...) \
 	do { if (mask & debug_mask) printk("[ddrfreq] "format,##args); } while (0)

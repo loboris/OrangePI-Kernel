@@ -31,7 +31,7 @@
 #endif
 
 #ifdef ISP_DGB_FL
-#define  FUNCTION_LOG          do { printk("%s, line: %d\n", __FUNCTION__, __LINE__); } while(0)
+#define  FUNCTION_LOG          do { pr_debug("%s, line: %d\n", __FUNCTION__, __LINE__); } while(0)
 #else
 #define  FUNCTION_LOG
 #endif
