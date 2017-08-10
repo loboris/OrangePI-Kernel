@@ -11,11 +11,16 @@ typedef enum tag_CAMERA_IO_CMD {
 	SET_FLASH_CTRL,
 	ISP_SET_EXP_GAIN,
 	GET_SENSOR_EXIF,
+	ISP_SET_WIN_OFF,
 }__camera_cmd_t;
 
 struct sensor_exp_gain {
 	int exp_val;
 	int gain_val;	
+};
+struct sensor_win_off {
+	int hor_off;
+	int ver_off;	
 };
 
 struct sensor_exif_attribute {

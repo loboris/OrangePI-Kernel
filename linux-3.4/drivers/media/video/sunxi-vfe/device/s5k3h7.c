@@ -1574,7 +1574,8 @@ static struct regval_list sensor_default_regs[] = {
 //for capture
 static struct regval_list sensor_quxga_regs[] = { //quxga
 {8,  0x0100,0x00},	//stream off
-{8,  0x0104,0x01},	//group on
+#if 1
+//{8,  0x0104,0x01},	//group on
 //====================================================================
 //                     |-->dbr_clk_div================>charge_pump_clk
 // 6~54    3~6   0.5~1G|              |-->gray_div====>adc_clk
@@ -1584,17 +1585,17 @@ static struct regval_list sensor_quxga_regs[] = { //quxga
 //====================================================================
 // set PLL
 {16, 0x0304,0x0006},  //pre_pll_clk_div
-{16, 0x0306,0x008a},  //pll_multiplier 15/20/30fps-0x8a/0xb8/0x
+{16, 0x0306,0x008c},  //pll_multiplier 15/20/30fps-0x8a/0xb8/0x
 {16, 0x0302,0x0001},  //vt_sys_clk_div
-{16, 0x0300,0x0004},  //vt_pix_clk_div
+{16, 0x0300,0x0002},  //vt_pix_clk_div
 
 {16, 0x030C,0x0006},  //2nd_pre_pll_clk_div
-{16, 0x030E,0x00b0},	//2nd_pll_multiplier
+{16, 0x030E,0x00a5},	//2nd_pll_multiplier
 {16, 0x030A,0x0001},  //op_sys_clk_div
 {16, 0x0308,0x0008},  //op_pix_clk_div
 //set output size
-{16, 0x0342,0x0E80},	// frame_timing_line_length_pck 
-{16, 0x0340,0x09ae},	// frame_timing_frame_length_lines
+{16, 0x0342,0x0E68},	// frame_timing_line_length_pck 
+{16, 0x0340,0x0bdc},//9e2},	// frame_timing_frame_length_lines
 {16, 0x0344,0x0004},	//x_addr_start
 {16, 0x0346,0x0004},  //y_addr_start
 {16, 0x0348,0x0CC3},	//x_addr_end	
@@ -1628,8 +1629,19 @@ static struct regval_list sensor_quxga_regs[] = { //quxga
 // Set gain
 {16, 0x0204,0x0020},	// X1
 //=================================
-{8,  0x0104,0x00},	//group off
+//{8,  0x0104,0x00},	//group off
 {16, 0xffff,10},	// delay
+#endif
+#if 0
+{8,  0x0114,0x03},    // 4Lane
+{16, 0x030E,0x00a5},	//2nd_pll_multiplier
+{16, 0x0342,0x0E68},	// frame_timing_line_length_pck 
+{16, 0x0340,0x09e2},	// frame_timing_frame_length_lines
+{16, 0x0200,0x0618},	// fine_integration_time
+{16, 0x0202,0x09c9},	// coarse_integration_time
+{16, 0x0204,0x0020},	// X1
+#endif
+
 {8,  0x0100,0x01},	//stream on
 };
 
@@ -1816,7 +1828,7 @@ static int sensor_write(struct v4l2_subdev *sd, unsigned short reg,
   return ret;
 }
 static int print_reg(struct v4l2_subdev *sd, unsigned short addr)
-{return 0;
+{
   int ret=0;
   unsigned char tmp=0xff;
   sensor_read_byte(sd, addr, &tmp);
@@ -1957,55 +1969,6 @@ static int sensor_g_exp(struct v4l2_subdev *sd, __s32 *value)
 	vfe_dev_dbg("sensor_get_exposure = %d\n", info->exp);
 	return 0;
 }
-
-static int sensor_s_exp_gain(struct v4l2_subdev *sd, struct sensor_exp_gain *exp_gain)
-{//return -1;
-  int exp_val, gain_val,frame_length,shutter;
-  unsigned char explow=0,expmid=0,exphigh=0;
-  unsigned char gainlow=0,gainhigh=0;  
-  struct sensor_info *info = to_state(sd);
-
-  exp_val = exp_gain->exp_val;
-  gain_val = exp_gain->gain_val;
-  
-  if(exp_val>0xfffff)
-	  exp_val=0xfffff;
-  
-  gainlow=(unsigned char)((gain_val<<3)&0xff);
-  gainhigh=(unsigned char)((gain_val>>5));
-  
-  exphigh	= (unsigned char) ( (0x0f0000&exp_val)>>16);
-  expmid	= (unsigned char) ( (0x00ff00&exp_val)>>8);
-  explow	= (unsigned char) ( (0x0000ff&exp_val)	 );
-  shutter = exp_val/16;  
-  if(shutter  > s5k3h7_sensor_vts- 4)
-        frame_length = shutter + 4;
-  else
-        frame_length = s5k3h7_sensor_vts;
-  
-  sensor_write(sd, 0x3208, 0x00);//enter group write
-  
-  sensor_write(sd, 0x3503, 0x03);
-  
-  sensor_write(sd, 0x380f, (frame_length & 0xff));
-  sensor_write(sd, 0x380e, (frame_length >> 8));
-  
-  sensor_write(sd, 0x3509, gainlow);
-  sensor_write(sd, 0x3508, gainhigh);
-  
-  sensor_write(sd, 0x3502, explow);
-  sensor_write(sd, 0x3501, expmid);
-  sensor_write(sd, 0x3500, exphigh);	
-  sensor_write(sd, 0x3208, 0x10);//end group write
-  sensor_write(sd, 0x3208, 0xa0);//init group write
-  
-  printk("exp_val = %d,gain_val = %d 0x%x 0x%x\t%d\n",exp_val,gain_val,gainhigh,gainlow, frame_length);
-  
-  info->exp = exp_val;
-  info->gain = gain_val;
-  return 0;
-}
-
 static int sensor_s_exp(struct v4l2_subdev *sd, unsigned int exp_val)
 {
 	unsigned int exp_coarse;
@@ -2058,6 +2021,56 @@ static int sensor_s_gain(struct v4l2_subdev *sd, int gain_val)
 	//printk("s5k3h7 sensor_set_gain = %d, Done!\n", gain_val);
 	info->gain = gain_val;
 	
+	return 0;
+}
+
+
+static int sensor_s_exp_gain(struct v4l2_subdev *sd, struct sensor_exp_gain *exp_gain)
+{//return -1;
+	int exp_val, gain_val,shutter,frame_length;
+	//return -EINVAL;
+
+	unsigned char explow,exphigh;
+	unsigned char gainlow=0;
+	unsigned char gainhigh=0;
+	struct sensor_info *info = to_state(sd);
+	exp_val = exp_gain->exp_val;
+	gain_val = exp_gain->gain_val;
+
+
+//sensor_s_gain(sd, gain_val);
+//sensor_s_exp(sd, exp_val);
+#if 1
+	shutter = exp_val>>4;
+
+	if(shutter  > s5k3h7_sensor_vts-4)
+		frame_length = shutter+4;
+	else
+		frame_length = s5k3h7_sensor_vts;
+		
+//		print_reg(sd,0x0341);
+//		print_reg(sd,0x0340);
+//		sensor_write(sd, 0x0341,( (frame_length) & 0xff));
+//		sensor_write(sd, 0x0340,((frame_length) >> 8));
+//  vfe_dev_dbg("frame_length = %d,%d,%d\n",frame_length,shutter,s5k3h7_sensor_vts);
+  sensor_write(sd,0x0104,0x01);
+  sensor_write(sd, 0x0340, frame_length);
+  sensor_s_gain(sd, gain_val);
+  sensor_s_exp(sd, exp_val);
+  sensor_write(sd,0x0104,0x00);
+  
+	printk("s5k3h7 sensor_set_gain = %d, %d  Done!\n", gain_val,exp_val);
+  
+//  sensor_write(sd,0x0104,0x01);
+//	sensor_write(sd, 0x0341,0xae);
+//	sensor_write(sd, 0x0340,0x09);
+//  sensor_write(sd,0x0104,0x00);
+
+
+	//vfe_dev_dbg("s5k5e2 sensor_set_gain = %d, Done!\n", gain_val);
+#endif
+	info->gain = gain_val;
+	info->exp = exp_val;
 	return 0;
 }
 
@@ -2360,16 +2373,16 @@ static struct sensor_win_size sensor_win_sizes[] = {
       .height     = QUXGA_HEIGHT,
       .hoffset    = 0,
       .voffset    = 0,
-      .hts        = 3712,//must over x, limited by sensor
-      .vts        = 2478,
-      .pclk       = 184*1000*1000,
-      .mipi_bps		= 400*1000*1000,
+      .hts        = 3688,//must over x, limited by sensor
+      .vts        = 3036,//2530,
+      .pclk       = 280*1000*1000,
+      .mipi_bps		= 660*1000*1000,
       .fps_fixed  = 1,
       .bin_factor = 1,
       .intg_min   = 1<<4,
-      .intg_max   = 2484<<4,
+      .intg_max   = 3036<<4,
       .gain_min   = 1<<4,
-      .gain_max   = 16<<4,
+      .gain_max   = 8<<4,
       .regs       = sensor_quxga_regs,
       .regs_size  = ARRAY_SIZE(sensor_quxga_regs),
       .set_size   = NULL,
@@ -2397,45 +2410,7 @@ static struct sensor_win_size sensor_win_sizes[] = {
       .regs_size  = ARRAY_SIZE(sensor_1080p_regs),//sensor_1080p_regs
       .set_size		= NULL,
     },
-	/* UXGA */
-//	{
-//      .width			= UXGA_WIDTH,
-//      .height 		= UXGA_HEIGHT,
-//      .hoffset	  = 0,
-//      .voffset	  = 0,
-//      .hts        = 2800,//limited by sensor
-//      .vts        = 1000,
-//      .pclk       = 84*1000*1000,
-//      .fps_fixed  = 1,
-//      .bin_factor = 1,
-//      .intg_min   = ,
-//      .intg_max   = ,
-//      .gain_min   = ,
-//      .gain_max   = ,
-//      .regs			= sensor_uxga_regs,
-//      .regs_size	= ARRAY_SIZE(sensor_uxga_regs),
-//      .set_size		= NULL,
-//	},
-    /* 720p */
-    {
-      .width      = HD720_WIDTH,
-      .height     = HD720_HEIGHT,
-      .hoffset    = 0,
-      .voffset    = 0,
-      .hts        = 2800,//
-      .vts        = 1000,
-      .pclk       = 84*1000*1000,
-      .mipi_bps		= 200*1000*1000,
-      .fps_fixed  = 1,
-      .bin_factor = 1,
-      .intg_min   = 3<<4,
-      .intg_max   = (1000-8)<<4,
-      .gain_min   = 1<<4,
-      .gain_max   = 16<<4,
-      .regs			  = sensor_720p_regs,//
-      .regs_size	= ARRAY_SIZE(sensor_720p_regs),//
-      .set_size		= NULL,
-    },
+
 };
 
 #define N_WIN_SIZES (ARRAY_SIZE(sensor_win_sizes))
@@ -2588,7 +2563,7 @@ static int sensor_s_fmt(struct v4l2_subdev *sd,
 	
 	sensor_write_array(sd, sensor_oe_enable_regs, ARRAY_SIZE(sensor_oe_enable_regs));
 	
-	if(1)
+	if(0)
 	{
 	  unsigned int i=0;
 	  for(i=0;i<0x40;i+=2)

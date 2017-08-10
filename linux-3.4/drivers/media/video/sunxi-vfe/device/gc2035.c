@@ -4628,7 +4628,7 @@ static int sensor_power(struct v4l2_subdev *sd, int on)
 	{
 	case CSI_SUBDEV_STBY_ON:
 		vfe_dev_dbg("CSI_SUBDEV_STBY_ON\n");
-		vfe_dev_dbg("disalbe oe!\n");
+		vfe_dev_print("disalbe oe!\n");
 		ret = sensor_write_array(sd, sensor_oe_disable_regs, ARRAY_SIZE(sensor_oe_disable_regs));
 		if(ret < 0)
 			vfe_dev_err("disalbe oe falied!\n");
@@ -4651,7 +4651,7 @@ static int sensor_power(struct v4l2_subdev *sd, int on)
 		vfe_set_mclk_freq(sd, (MCLK*1000*1000));
 		vfe_set_mclk(sd,ON);
 		usleep_range(10000,12000);
-		vfe_dev_dbg("enable oe!\n");
+		vfe_dev_print("enable oe!\n");
 		ret = sensor_write_array(sd, sensor_oe_enable_regs,  ARRAY_SIZE(sensor_oe_enable_regs));
 		if(ret < 0)
 		vfe_dev_err("enable oe falied!\n");

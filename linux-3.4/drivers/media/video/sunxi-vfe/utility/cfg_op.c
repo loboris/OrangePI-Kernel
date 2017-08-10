@@ -10,9 +10,7 @@
 #include <linux/string.h>
 #include <linux/slab.h>
 #include <asm/uaccess.h>
-
 #include "cfg_op.h"
-
 
 #define CFG_OK 0 
 #define CFG_ERR -10
@@ -154,15 +152,15 @@ static int split_key_value(char *buf, char *key, char *val)
 static int get_one_key_value(char *buffer, void *section, void *key, void *value)
 { 
   char buf[LINE_MAX_CHAR_NUM + 1];
-  char *key_ptr, *val_ptr; 
+  char key_ptr[MAX_NAME_LEN] = {0}, val_ptr[MAX_NAME_LEN] = {0}; 
   int n, ret; 
   unsigned int i, buf_len;
   
   if((buf_len = strlen((char *)buffer)) < 1) 
     return CFG_ERR; 
   
-  key_ptr = (char*)kzalloc(MAX_NAME_LEN,GFP_KERNEL);
-	val_ptr = (char*)kzalloc(MAX_VALUE_LEN,GFP_KERNEL);
+  //key_ptr = (char*)kzalloc(MAX_NAME_LEN,GFP_KERNEL);
+//	val_ptr = (char*)kzalloc(MAX_VALUE_LEN,GFP_KERNEL);
   
   for(i = 0; i < buf_len; )  /* search for section */
   { 
@@ -218,10 +216,10 @@ static int get_one_key_value(char *buffer, void *section, void *key, void *value
   } 
   ret = CFG_OK; 
 g_one_key_end: 
-	if(key_ptr)
-		kfree(key_ptr);
-	if(val_ptr)
-		kfree(val_ptr);
+	//if(key_ptr)
+	//	kfree(key_ptr);
+	//if(val_ptr)
+	//	kfree(val_ptr);
   return ret; 
 }
 
@@ -236,16 +234,12 @@ g_one_key_end:
 static int get_all_keys_value(char *buffer, void *section, char *keys[], void *value[])
 { 
   char buf[LINE_MAX_CHAR_NUM + 1];
-  char *key_ptr, *val_ptr; 
+  char key_ptr[MAX_NAME_LEN], val_ptr[MAX_VALUE_LEN]; 
   int n, n_keys = 0, ret; 
   unsigned int i, buf_len;
 	
 	if((buf_len = strlen((char *)buffer)) < 1) 
     return CFG_ERR; 
-	
-	key_ptr = (char*)kzalloc(MAX_NAME_LEN,GFP_KERNEL);
-	val_ptr = (char*)kzalloc(MAX_VALUE_LEN,GFP_KERNEL);
-	
   for(i = 0; i < buf_len;)  /* search for section */
   { 
     ret = CFG_ERR_RD; 
@@ -297,10 +291,6 @@ static int get_all_keys_value(char *buffer, void *section, char *keys[], void *v
   } 
   ret = n_keys; 
 g_all_keys_end: 
-	if(key_ptr)
-		kfree(key_ptr);
-	if(val_ptr)
-		kfree(val_ptr);
   return ret; 
 }
 
@@ -367,20 +357,20 @@ int cfg_get_one_key_value(char *buffer, struct cfg_mainkey *scts, struct cfg_sub
   if(scts->cfg_flag != CFG_KEY_INIT || subkey->cfg_flag != CFG_KEY_INIT)
     return CFG_ERR_NOT_INIT;
   
-  ret = get_one_key_value(buffer, scts->name, subkey->name, (void *)subkey->value->str);
+  ret = get_one_key_value(buffer, scts->name, subkey->name, (void *)subkey->value.str);
   if(ret)
     return ret;
   
-  len = strlen(subkey->value->str);
-  strcpy(str_tmp,subkey->value->str);
+  len = strlen(subkey->value.str);
+  strcpy(str_tmp,subkey->value.str);
   
   if(str_tmp[0] == '"' && str_tmp[len-1] == '"') {
     subkey->type = CFG_ITEM_VALUE_TYPE_STR;
-    strcpy(subkey->value->str, strim_char(subkey->value->str,'"'));
+    strcpy(subkey->value.str, strim_char(subkey->value.str,'"'));
   } else if((str_tmp[0] >= 0x30 && str_tmp[0] <= 0x39) || str_tmp[0] == '-') {
     subkey->type = CFG_ITEM_VALUE_TYPE_INT;
     endp = "\0";
-    subkey->value->val = (int)simple_strtol(subkey->value->str,&endp,0);
+    subkey->value.val = (int)simple_strtol(subkey->value.str,&endp,0);
   } else {
     subkey->type = CFG_ITEM_VALUE_TYPE_INVALID;
   }
@@ -414,56 +404,24 @@ int cfg_get_all_keys_value(char *buffer, struct cfg_mainkey *scts)
 
   for(i = 0; i < scts->subkey_cnt; i++)
   {
-    len = strlen(scts->subkey[i]->value->str);
-    strcpy(str_tmp,scts->subkey[i]->value->str);
+    len = strlen(scts->subkey[i].value.str);
+    strcpy(str_tmp,scts->subkey[i].value.str);
 
     if(str_tmp[0] == '"' && str_tmp[len-1] == '"') {
-      scts->subkey[i]->type = CFG_ITEM_VALUE_TYPE_STR;
-      strcpy(scts->subkey[i]->value->str,strim_char(scts->subkey[i]->value->str,'"'));
+      scts->subkey[i].type = CFG_ITEM_VALUE_TYPE_STR;
+      strcpy(scts->subkey[i].value.str,strim_char(scts->subkey[i].value.str,'"'));
     } else if((str_tmp[0] >= 0x30 && str_tmp[0] <= 0x39) || str_tmp[0] == '-') {
-      scts->subkey[i]->type = CFG_ITEM_VALUE_TYPE_INT;
+      scts->subkey[i].type = CFG_ITEM_VALUE_TYPE_INT;
       endp = "\0";
-      scts->subkey[i]->value->val = (int)simple_strtol(scts->subkey[i]->value->str,&endp,0);
+      scts->subkey[i].value.val = (int)simple_strtol(scts->subkey[i].value.str,&endp,0);
     } else {
-      scts->subkey[i]->type = CFG_ITEM_VALUE_TYPE_INVALID;
+      scts->subkey[i].type = CFG_ITEM_VALUE_TYPE_INVALID;
     }
   }
 
   return scts->subkey_cnt;
 }
 
-/*
- * name:    cfg_subkey_init
- * func:    API: init resource before using subkey
- * input��  struct cfg_subkey **subkey
- * output�� 
- * return�� error number
- */
-void cfg_subkey_init(struct cfg_subkey **subkey)
-{
-  *subkey = (struct cfg_subkey*)kzalloc(sizeof(struct cfg_subkey),GFP_KERNEL);
-  (*subkey)->value = (struct cfg_item*)kzalloc(sizeof(struct cfg_item),GFP_KERNEL);
-  (*subkey)->value->str = (char *)kzalloc(MAX_VALUE_LEN,GFP_KERNEL);
-  (*subkey)->cfg_flag = CFG_KEY_INIT;
-}
-
-/*
- * name:    cfg_subkey_release
- * func:    API: release resource after using subkey
- * input��  struct cfg_subkey **subkey
- * output�� 
- * return�� error number
- */
-void cfg_subkey_release(struct cfg_subkey **subkey)
-{
-  (*subkey)->cfg_flag = CFG_KEY_RELEASE;
-  if((*subkey)->value->str)
-    kfree((*subkey)->value->str);
-  if((*subkey)->value)
-    kfree((*subkey)->value);
-  if(*subkey)
-    kfree(*subkey);
-}
 
 /*
  * name:    cfg_mainkey_init
@@ -474,18 +432,16 @@ void cfg_subkey_release(struct cfg_subkey **subkey)
  */
 void cfg_mainkey_init(struct cfg_mainkey **mainkey, char **mainkey_name)
 {
-  int n;
-  
-  *mainkey = (struct cfg_mainkey*)kzalloc(sizeof(struct cfg_mainkey),GFP_KERNEL);
-  *mainkey_name = (*mainkey)->name;
-  for(n = 0; n < MAX_SUBKEY_NUM; n++) {
-    (*mainkey)->subkey[n] = (struct cfg_subkey*)kzalloc(sizeof(struct cfg_subkey),GFP_KERNEL);
-    (*mainkey)->subkey[n]->value = (struct cfg_item*)kzalloc(sizeof(struct cfg_item),GFP_KERNEL);
-    (*mainkey)->subkey[n]->value->str = (char *)kzalloc(MAX_VALUE_LEN,GFP_KERNEL);
-    (*mainkey)->subkey_name[n] = (*mainkey)->subkey[n]->name;
-    (*mainkey)->subkey_value[n] = (*mainkey)->subkey[n]->value->str;
-  }
-  (*mainkey)->cfg_flag = CFG_KEY_INIT;
+	int n;
+	*mainkey = (struct cfg_mainkey*)vmalloc(sizeof(struct cfg_mainkey));
+	memset(*mainkey, 0, sizeof(struct cfg_mainkey));
+	*mainkey_name = (*mainkey)->name;
+	for(n = 0; n < MAX_SUBKEY_NUM; n++)
+	{
+		(*mainkey)->subkey_name[n] = (*mainkey)->subkey[n].name;
+		(*mainkey)->subkey_value[n] = (*mainkey)->subkey[n].value.str;
+	}
+	(*mainkey)->cfg_flag = CFG_KEY_INIT;
 }
 
 /*
@@ -497,24 +453,9 @@ void cfg_mainkey_init(struct cfg_mainkey **mainkey, char **mainkey_name)
  */
 void cfg_mainkey_release(struct cfg_mainkey **mainkey, char **mainkey_name)
 {
-  int n;
-  
-  (*mainkey)->cfg_flag = CFG_KEY_RELEASE;  
-  for(n = 0; n < MAX_SUBKEY_NUM; n++) {
-    if((*mainkey)->subkey_value[n])
-      (*mainkey)->subkey_value[n] = NULL;
-    if((*mainkey)->subkey_name[n])
-      (*mainkey)->subkey_name[n] = NULL;
-    if((*mainkey)->subkey[n]->value->str)
-      kfree((*mainkey)->subkey[n]->value->str);
-    if((*mainkey)->subkey[n]->value)
-      kfree((*mainkey)->subkey[n]->value);  
-    if((*mainkey)->subkey[n])
-      kfree((*mainkey)->subkey[n]);
-  }
-
-  if(*mainkey)
-    kfree(*mainkey);
+	(*mainkey)->cfg_flag = CFG_KEY_RELEASE;  
+	if(*mainkey)
+		vfree(*mainkey);
 }
 
 /*
@@ -527,11 +468,10 @@ void cfg_mainkey_release(struct cfg_mainkey **mainkey, char **mainkey_name)
 void cfg_section_init(struct cfg_section **cfg_sct)
 {
   int i;
-  
-  *cfg_sct = (struct cfg_section*)kzalloc(sizeof(struct cfg_section),GFP_KERNEL);
-  for(i = 0; i < MAX_MAINKEY_NUM; i++)
-    cfg_mainkey_init(&(*cfg_sct)->mainkey[i],&(*cfg_sct)->mainkey_name[i]);
-  (*cfg_sct)->cfg_flag = CFG_KEY_INIT;
+	*cfg_sct = (struct cfg_section*)kzalloc(sizeof(struct cfg_section),GFP_KERNEL);
+	for(i = 0; i < MAX_MAINKEY_NUM; i++)
+		cfg_mainkey_init(&(*cfg_sct)->mainkey[i],&(*cfg_sct)->mainkey_name[i]);
+	(*cfg_sct)->cfg_flag = CFG_KEY_INIT;
 }
 
 /*
@@ -551,6 +491,31 @@ void cfg_section_release(struct cfg_section **cfg_sct)
   if(*cfg_sct)
     kfree(*cfg_sct);
 }
+
+struct file* cfg_open_file(char *file_path)
+{
+	struct file* fp;
+	fp = filp_open(file_path, O_RDWR | O_APPEND | O_CREAT, 644);
+	if(IS_ERR(fp)) {
+		printk("[vfe_warn]open %s failed!, ERR NO is %d.\n",file_path,  (int)fp);
+	}
+	return fp;
+}
+int cfg_close_file(struct file *fp)
+{
+	if(IS_ERR(fp))
+	{
+		printk("[vfe_warn]colse file failed,fp is invaild!\n");
+		return -1;
+	}
+	else
+	{
+		filp_close(fp,NULL);
+		return 0;
+	}
+}
+
+
 
 /*
  * name:    cfg_read_file
@@ -587,6 +552,31 @@ int cfg_read_file(char *file_path, char *buf, size_t len)
   return buf_len;
 }
 
+int cfg_write_file(	struct file* fp, char *buf, size_t len)
+{
+	mm_segment_t old_fs;
+	loff_t pos = 0;
+	int buf_len;
+	if(IS_ERR_OR_NULL(fp))
+	{
+		printk("cfg write file error, fp is null!");
+		return -1;
+	}
+	old_fs = get_fs();
+	set_fs(KERNEL_DS);
+	buf_len = vfs_write(fp, buf, len, &pos);
+	set_fs(old_fs);
+	//printk("bin len = %d\n",buf_len);
+	if(buf_len < 0)
+		return -1;
+	if(buf_len != len)
+	{
+		printk("buf_len = %x, len = %x\n", buf_len, len);
+	}
+	return buf_len;
+}
+
+
 /*
  * name:    cfg_read_ini
  * func:    API: read from file, parse mainkey and sunkey value,save to cfg_setction
@@ -604,7 +594,8 @@ int cfg_read_ini(char *file_path, struct cfg_section **cfg_section)
 	char *buf;
 	int buf_len, ret = 0;
 	
-	buf = (char*)kzalloc(INI_MAX_CHAR_NUM,GFP_KERNEL);
+	buf = (char*)vmalloc(INI_MAX_CHAR_NUM);
+	memset(buf, 0, INI_MAX_CHAR_NUM);
 
 #if 0	
 	/* file operation */
@@ -650,7 +641,7 @@ int cfg_read_ini(char *file_path, struct cfg_section **cfg_section)
 
 rd_ini_end:		
   if(buf)
-    kfree(buf);
+    vfree(buf);
 
   return ret;
 }
@@ -672,9 +663,9 @@ int cfg_get_one_subkey(struct cfg_section *cfg_section, char *main, char *sub, s
 		   	
 		     if(strcmp(cfg_section->mainkey[i]->subkey_name[j],sub) == 0)
 			 {
-			   ret = cfg_section->mainkey[i]->subkey[j]->type;
-			   memcpy(subkey,cfg_section->mainkey[i]->subkey[j],sizeof(struct cfg_subkey));
-			   subkey = cfg_section->mainkey[i]->subkey[j];
+			   ret = cfg_section->mainkey[i]->subkey[j].type;
+			   memcpy(subkey,&cfg_section->mainkey[i]->subkey[j],sizeof(struct cfg_subkey));
+			   subkey = &cfg_section->mainkey[i]->subkey[j];
 			   return ret;
 			 }
 		   }

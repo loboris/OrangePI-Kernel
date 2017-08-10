@@ -31,7 +31,7 @@ static void cci_release(struct device *dev)
 	vfe_print("cci_device_release\n");
 };
 
-
+#ifdef CCI_IRQ
 static irqreturn_t cci_irq_handler(int this_irq, void * dev)
 {
 	unsigned long flags = 0;
@@ -41,6 +41,7 @@ static irqreturn_t cci_irq_handler(int this_irq, void * dev)
 	spin_unlock_irqrestore(&cci->slock, flags);
 	return IRQ_HANDLED;
 }
+#endif
 
 static int __devinit cci_probe(struct platform_device *pdev)
 {
@@ -80,12 +81,13 @@ static int __devinit cci_probe(struct platform_device *pdev)
 		ret = -EIO;
 		goto eremap;
 	}
-	
+#ifdef CCI_IRQ
 	ret = request_irq(irq, cci_irq_handler, IRQF_DISABLED, CCI_MODULE_NAME, cci);
 	if (ret) {
 		vfe_err("[cci_%d] requeset irq failed!\n", cci->cci_sel);
 		goto ereqirq;
 	}
+#endif
 #if defined  (CONFIG_ARCH_SUN9IW1P1)
 	ret = bsp_csi_cci_set_base_addr(cci->cci_sel, (unsigned int)cci->base);
 	if(ret < 0)
@@ -101,13 +103,13 @@ static int __devinit cci_probe(struct platform_device *pdev)
 #endif
 	platform_set_drvdata(pdev, cci);
 	vfe_print("cci probe end cci_sel = %d!\n",pdata->cci_sel);
-
 	return 0;
-
 ehwinit:
+#ifdef CCI_IRQ
 	free_irq(irq, cci);
+	ereqirq:
+#endif
 
-ereqirq:
 	iounmap(cci->base);
 
 eremap:
@@ -124,7 +126,9 @@ static int __devexit cci_remove(struct platform_device *pdev)
 	struct cci_dev *cci = platform_get_drvdata(pdev);
 
 	platform_set_drvdata(pdev, NULL);
+#ifdef CCI_IRQ
 	free_irq(cci->irq, cci);
+#endif
 	if(cci->base)
 		iounmap(cci->base);
 	kfree(cci);

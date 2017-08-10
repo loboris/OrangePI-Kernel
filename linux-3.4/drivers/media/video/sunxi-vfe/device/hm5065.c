@@ -50,8 +50,8 @@ MODULE_LICENSE("GPL");
 #define V4L2_IDENT_SENSOR 0x039E
 
 //define the voltage level of control signal
-#define CSI_STBY_ON     1
-#define CSI_STBY_OFF    0
+#define CSI_STBY_ON     0
+#define CSI_STBY_OFF    1
 #define CSI_RST_ON      0
 #define CSI_RST_OFF     1
 #define CSI_PWR_ON      1
@@ -3021,7 +3021,7 @@ static int sensor_write_array(struct v4l2_subdev *sd, struct regval_list *regs, 
   while(i<array_size)
   {
     if(regs->addr == REG_DLY) {
-      	mdelay(regs->data);
+      msleep(regs->data);
     } 
     else {  
     	//printk("write 0x%x=0x%x\n", regs->addr, regs->data);
@@ -3104,7 +3104,7 @@ static int sensor_download_af_fw(struct v4l2_subdev *sd)
 	}
 		
 	//download af fw
-	ret =sensor_write_continuous(sd, 0x8000, sensor_af_fw_regs, ARRAY_SIZE(sensor_af_fw_regs));
+	ret =cci_write_a16_d8_continuous_helper(sd, 0x8000, sensor_af_fw_regs, ARRAY_SIZE(sensor_af_fw_regs));
 	if(ret < 0) {
 		 vfe_dev_err("download af fw error\n");
 		return ret;
@@ -3173,7 +3173,7 @@ static int sensor_g_single_af(struct v4l2_subdev *sd)
 		return V4L2_AUTO_FOCUS_STATUS_REACHED;
 	}		
 	
-	return V4L2_AUTO_FOCUS_STATUS_FAILED;
+	return V4L2_AUTO_FOCUS_STATUS_BUSY;
 }
 
 static int sensor_g_contin_af(struct v4l2_subdev *sd)
@@ -3190,12 +3190,12 @@ static int sensor_g_contin_af(struct v4l2_subdev *sd)
     sensor_read(sd, 0x07AE, &rdval);
     if(rdval==0)
     {
-//	    vfe_dev_print("Contin AF focus fail, 0x3028 = 0x%x\n",rdval);
-	    return V4L2_AUTO_FOCUS_STATUS_FAILED;
+	    vfe_dev_print("Contin AF focus fail, 0x3028 = 0x%x\n",rdval);
+	    return V4L2_AUTO_FOCUS_STATUS_BUSY;
     }
     else
     {
-//		  vfe_dev_dbg("Contin AF focus ok, 0x3028 = 0x%x\n",rdval);
+		  vfe_dev_dbg("Contin AF focus ok, 0x3028 = 0x%x\n",rdval);
 		return V4L2_AUTO_FOCUS_STATUS_REACHED;
     }
     	
@@ -3206,10 +3206,10 @@ static int sensor_g_af_status(struct v4l2_subdev *sd)
   int ret=0;
   struct sensor_info *info = to_state(sd);
 	
-	if(info->auto_focus==1)
+	//if(info->auto_focus==1)
 		ret = sensor_g_contin_af(sd);
-	else
-		ret = sensor_g_single_af(sd);
+	//else
+	//	ret = sensor_g_single_af(sd);
 	
 	return ret;
 }
@@ -3309,13 +3309,14 @@ static int sensor_s_release_af(struct v4l2_subdev *sd)
 	return 0;
 }
 
-static int sensor_s_af_zone(struct v4l2_subdev *sd, unsigned int xc, unsigned int yc)
+static int sensor_s_af_zone(struct v4l2_subdev *sd,
+														struct v4l2_win_coordinate * win_c)
 {
 	struct sensor_info *info = to_state(sd);
-	int ret;
+	int ret,xc,yc;	
 	
 	 vfe_dev_print("sensor_s_af_zone\n");
-	 vfe_dev_dbg("af zone input xc=%d,yc=%d\n",xc,yc);
+ 	//sensor_s_single_af(sd);
 	return 0;//gong
 	if(info->width == 0 || info->height == 0) {
 		 vfe_dev_err("current width or height is zero!\n");
@@ -4129,8 +4130,8 @@ static int sensor_power(struct v4l2_subdev *sd, int on)
       //when using i2c_lock_adpater function, the following codes must not access i2c bus before calling cci_unlock
       cci_lock(sd);
       //power on reset
-     // vfe_gpio_set_status(sd,PWDN,1);//set the gpio to output
-     // vfe_gpio_set_status(sd,RESET,1);//set the gpio to output
+      vfe_gpio_set_status(sd,PWDN,1);//set the gpio to output
+      vfe_gpio_set_status(sd,RESET,1);//set the gpio to output
       //power down io
       vfe_gpio_write(sd,PWDN,CSI_STBY_ON);
       //reset on io
@@ -4174,8 +4175,8 @@ static int sensor_power(struct v4l2_subdev *sd, int on)
       vfe_gpio_write(sd,PWDN,CSI_STBY_OFF);
       vfe_gpio_write(sd,RESET,CSI_RST_ON);
       //set the io to hi-z
-    //  vfe_gpio_set_status(sd,RESET,0);//set the gpio to input
-    //  vfe_gpio_set_status(sd,PWDN,0);//set the gpio to input
+      vfe_gpio_set_status(sd,RESET,0);//set the gpio to input
+      vfe_gpio_set_status(sd,PWDN,0);//set the gpio to input
       //remember to unlock i2c adapter, so the device can access the i2c bus again
       cci_unlock(sd);  
       break;
@@ -5015,15 +5016,15 @@ static int sensor_s_ctrl(struct v4l2_subdev *sd, struct v4l2_control *ctrl)
 	  case V4L2_CID_AUTO_FOCUS_RELEASE:
 	  	return sensor_s_release_af(sd);
 	  case V4L2_CID_AUTO_FOCUS_START:
-	  	return sensor_s_single_af(sd);
+	  	return sensor_s_continueous_af(sd);
 	  case V4L2_CID_AUTO_FOCUS_STOP:
 	  	return sensor_s_pause_af(sd);
 	  case V4L2_CID_AUTO_FOCUS_STATUS:
 	  case V4L2_CID_FOCUS_AUTO:
 	  	return sensor_s_continueous_af(sd);
-	//  case V4L2_CID_AUTO_FOCUS_WIN_NUM:
-	  //	vfe_dev_dbg("s_ctrl win value=%d\n",ctrl->value);
-	//	pix = (struct v4l2_pix_size*)ctrl->user_pt;	
+	  case V4L2_CID_AUTO_FOCUS_WIN_NUM:
+	  	vfe_dev_dbg("s_ctrl win value=%d\n",ctrl->value);
+	  	return sensor_s_af_zone(sd, (struct v4l2_win_coordinate *)(ctrl->user_pt));
 	  //	return sensor_s_af_zone(sd,pix->width,pix->height);
 	  case V4L2_CID_AUTO_EXPOSURE_WIN_NUM:
 	  	return 0;

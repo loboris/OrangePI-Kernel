@@ -31,7 +31,7 @@
 #include <media/videobuf-dma-contig.h>
 
 #include <linux/regulator/consumer.h>
-
+#include <linux/ktime.h>
 #include "vfe.h"
 
 #include "bsp_common.h"
@@ -43,6 +43,7 @@
 #include "platform/vfe_resource.h"
 #include "utility/sensor_info.h"
 #include "utility/vfe_io.h"
+#include <linux/ion_sunxi.h>
 
 #define IS_FLAG(x,y) (((x)&(y)) == y)
 #define CLIP_MAX(x,max) ((x) > max ? max : x )
@@ -79,6 +80,7 @@ static char act_name[I2C_NAME_SIZE] = "";
 static uint act_slave = 0xff;
 static uint define_sensor_list = 0xff;
 static uint vfe_i2c_dbg = 0;
+static uint isp_log = 0;
 static uint vips = 0xffff;
 
 static int touch_flash_flag = 0;
@@ -95,6 +97,15 @@ static unsigned int frame_cnt = 0;
 static unsigned int vfe_dump = 0;
 struct mutex probe_hdl_lock;
 
+struct file* fp_dbg = NULL;
+#ifdef CONFIG_ARCH_SUN8IW8P1
+static char LogFileName[128] = "/mnt/extsd/log.bin";
+static char ReparseIniPath[128] = "/mnt/extsd/hawkview/";
+#else
+static char LogFileName[128] = "/system/etc/hawkview/log.bin";
+static char ReparseIniPath[128] = "/system/etc/hawkview/";
+#endif
+
 module_param_string(ccm, ccm, sizeof(ccm), S_IRUGO|S_IWUSR);
 module_param(i2c_addr,uint, S_IRUGO|S_IWUSR);
 
@@ -102,8 +113,9 @@ module_param_string(act_name, act_name, sizeof(act_name), S_IRUGO|S_IWUSR);
 module_param(act_slave,uint, S_IRUGO|S_IWUSR);
 module_param(define_sensor_list,uint, S_IRUGO|S_IWUSR);
 module_param(vfe_i2c_dbg,uint, S_IRUGO|S_IWUSR);
-module_param(vips,uint, S_IRUGO|S_IWUSR);
+module_param(isp_log,uint, S_IRUGO|S_IWUSR);
 
+module_param(vips,uint, S_IRUGO|S_IWUSR);
 static ssize_t vfe_dbg_en_show(struct device *dev,
 		    struct device_attribute *attr, char *buf)
 {
@@ -189,7 +201,6 @@ static ssize_t isp_reparse_flag_store(struct device *dev,
 	}
 	return count;
 }
-
 static ssize_t vfe_dbg_dump_show(struct device *dev,
 		    struct device_attribute *attr, char *buf)
 {
@@ -506,7 +517,7 @@ static int isp_resource_request(struct vfe_dev *dev)
 				dev->isp_tbl_addr[i].isp_gamma_tbl_paddr = (void*)(pa_base + ISP_GAMMA_MEM_OFS);
 				dev->isp_tbl_addr[i].isp_gamma_tbl_dma_addr = (void*)(dma_base + ISP_GAMMA_MEM_OFS);
 				dev->isp_tbl_addr[i].isp_gamma_tbl_vaddr = (void*)(va_base + ISP_GAMMA_MEM_OFS);
-
+				
 				dev->isp_tbl_addr[i].isp_linear_tbl_paddr = (void*)(pa_base + ISP_LINEAR_MEM_OFS);
 				dev->isp_tbl_addr[i].isp_linear_tbl_dma_addr = (void*)(dma_base + ISP_LINEAR_MEM_OFS);
 				dev->isp_tbl_addr[i].isp_linear_tbl_vaddr = (void*)(va_base + ISP_LINEAR_MEM_OFS);
@@ -530,7 +541,7 @@ static int isp_resource_request(struct vfe_dev *dev)
 				dev->isp_tbl_addr[i].isp_drc_tbl_paddr = (void*)(pa_base + ISP_DRC_MEM_OFS);
 				dev->isp_tbl_addr[i].isp_drc_tbl_dma_addr = (void*)(dma_base + ISP_DRC_MEM_OFS);
 				dev->isp_tbl_addr[i].isp_drc_tbl_vaddr = (void*)(va_base + ISP_DRC_MEM_OFS);
-
+				
 				dev->isp_tbl_addr[i].isp_disc_tbl_paddr = (void*)(pa_base + ISP_DISC_MEM_OFS);
 				dev->isp_tbl_addr[i].isp_disc_tbl_dma_addr = (void*)(dma_base + ISP_DISC_MEM_OFS);
 				dev->isp_tbl_addr[i].isp_disc_tbl_vaddr = (void*)(va_base + ISP_DISC_MEM_OFS);
@@ -928,11 +939,15 @@ static inline void vfe_set_addr(struct vfe_dev *dev,struct vfe_buffer *buffer)
 	struct vfe_buffer *buf = buffer;
 	dma_addr_t addr_org;
 	struct videobuf_buffer *vb_buf = &buf->vb;
+	struct videobuf_queue *vq = &dev->vb_vidq;
+	void * vaddr;
+	
 	if(vb_buf == NULL || vb_buf->priv == NULL)
 	{
 		vfe_err("videobuf_buffer->priv is NULL!\n");
 		return;
 	}
+
 	//vfe_dbg(3,"buf ptr=%p\n",buf);
 	addr_org = videobuf_to_dma_contig(vb_buf) - CPU_DRAM_PADDR_ORG + HW_DMA_OFFSET;
 	//isp_addr_curr = vfe_reg_readl((volatile void __iomem*)(0xf1cb8210));
@@ -942,7 +957,16 @@ static inline void vfe_set_addr(struct vfe_dev *dev,struct vfe_buffer *buffer)
 	//}
 	//isp_addr_pst = addr_org /4;
 	if(dev->is_isp_used) {
+		vaddr = videobuf_queue_to_vaddr(vq, &buf->vb);
+#ifdef CONFIG_ARCH_SUN8IW8P1
+	if(ALIGN_16B(buf->vb.height) != buf->vb.height){
+		memset((unsigned char*)vaddr + ALIGN_16B(buf->vb.width)*ALIGN_16B(buf->vb.height)*3/2 - 16*ALIGN_16B(buf->vb.width), 128, 16*ALIGN_16B(buf->vb.width));
+		memset((unsigned char*)vaddr + buf->vb.size - 16*ALIGN_16B(buf->vb.width), 128, 16*ALIGN_16B(buf->vb.width));
+		flush_dcache_all();
+	}
+#endif
 		bsp_isp_set_output_addr(addr_org);
+		dev->isp_gen_set_pt->output_addr = addr_org;
 	} else {
 		bsp_csi_set_addr(dev->vip_sel, addr_org);
 	}
@@ -952,24 +976,24 @@ static inline void vfe_set_addr(struct vfe_dev *dev,struct vfe_buffer *buffer)
 
 static unsigned int common_af_status_to_v4l2(enum auto_focus_status af_status)
 {
-  switch(af_status) {
-    case AUTO_FOCUS_STATUS_IDLE:
-      return V4L2_AUTO_FOCUS_STATUS_IDLE;
-    case AUTO_FOCUS_STATUS_BUSY:
-      return V4L2_AUTO_FOCUS_STATUS_BUSY;
+	switch(af_status) {
+		case AUTO_FOCUS_STATUS_IDLE:
+			return V4L2_AUTO_FOCUS_STATUS_IDLE;
+		case AUTO_FOCUS_STATUS_BUSY:
+			return V4L2_AUTO_FOCUS_STATUS_BUSY;
 		case AUTO_FOCUS_STATUS_REACHED:
 			return V4L2_AUTO_FOCUS_STATUS_REACHED;
-    case AUTO_FOCUS_STATUS_APPROCH:
-      return V4L2_AUTO_FOCUS_STATUS_BUSY;
+		case AUTO_FOCUS_STATUS_APPROCH:
+			return V4L2_AUTO_FOCUS_STATUS_BUSY;
 		case AUTO_FOCUS_STATUS_REFOCUS:
 			return V4L2_AUTO_FOCUS_STATUS_BUSY;
-    case AUTO_FOCUS_STATUS_FINDED:
+		case AUTO_FOCUS_STATUS_FINDED:
 			return V4L2_AUTO_FOCUS_STATUS_BUSY;
-    case AUTO_FOCUS_STATUS_FAILED:
-      return V4L2_AUTO_FOCUS_STATUS_FAILED;
-    default:
-      return V4L2_AUTO_FOCUS_STATUS_IDLE;
-  }
+		case AUTO_FOCUS_STATUS_FAILED:
+			return V4L2_AUTO_FOCUS_STATUS_FAILED;
+		default:
+		      return V4L2_AUTO_FOCUS_STATUS_IDLE;
+	}
 }
 static void vfe_dump_csi_regs(struct vfe_dev *dev)
 {
@@ -1018,6 +1042,66 @@ static void vfe_dump_isp_regs(struct vfe_dev *dev)
 	}
 }
 
+static void vfe_init_isp_log(struct vfe_dev *dev)
+{
+	if(isp_log == 1)
+	{
+		fp_dbg = cfg_open_file(LogFileName);
+		dev->isp_gen_set[0].enable_log = 1;
+		dev->isp_gen_set[1].enable_log = 1;
+		if(IS_ERR(fp_dbg)){
+			vfe_err("open log.txt error.");
+		}else{
+			//if(cfg_write_file(fp_dbg, "0123456789abcdef\n", 16) < 0)
+			//{
+			//	vfe_err("/system/etc/hawkview/log.txt write test failed.");
+			//}
+			;
+		}
+	}else{
+		dev->isp_gen_set[0].enable_log = 0;
+		dev->isp_gen_set[1].enable_log = 0;
+	}
+
+}
+static void vfe_exit_isp_log(struct vfe_dev *dev)
+{
+	if(isp_log == 1)
+	{
+		cfg_close_file(fp_dbg);
+	}
+}
+static void vfe_dump_isp_log(struct vfe_dev *dev)
+{
+
+	//dump isp log.
+	if(isp_log == 1 && (frame_cnt % 4 == 0))
+	{
+		if(cfg_write_file(fp_dbg, dev->isp_gen_set_pt->stat.hist_buf, ISP_STAT_HIST_MEM_SIZE) < 0)
+		{
+			vfe_err("dump isp hist faild.");
+			return;
+		}
+		if(cfg_write_file(fp_dbg, dev->isp_gen_set_pt->stat.ae_buf, ISP_STAT_AE_MEM_SIZE) < 0)
+		{
+			vfe_err("dump isp ae faild.");
+		}
+		if(cfg_write_file(fp_dbg, (char *)dev->isp_gen_set_pt->awb_buf, 3*ISP_STAT_AWB_WIN_MEM_SIZE) < 0)
+		{
+			vfe_err("dump awb log faild.");
+		}
+		
+		//if(cfg_write_file(fp_dbg, dev->isp_gen_set_pt->stat.af_buf, ISP_STAT_AF_MEM_SIZE) < 0)
+		//{
+		//	vfe_err("dump isp log faild.");
+		//}
+		///if(cfg_write_file(fp_dbg, "0123456789abcdef\n", 16) < 0)
+		///{
+		//	vfe_err("/system/etc/hawkview/log.txt write test failed.");
+		//}
+	}
+}
+
 static void isp_isr_bh_handle(struct work_struct *work)
 {
 	struct actuator_ctrl_word_t  vcm_ctrl;
@@ -1030,7 +1114,7 @@ static void isp_isr_bh_handle(struct work_struct *work)
 		if(1 == isp_reparse_flag)
 		{
 			vfe_print("ISP reparse ini file!\n");
-			if(read_ini_info(dev,dev->input))
+			if(read_ini_info(dev,dev->input, ReparseIniPath))
 			{
 				vfe_warn("ISP reparse ini fail, please check isp config!\n");
 				goto ISP_REPARSE_END;
@@ -1056,6 +1140,7 @@ ISP_REPARSE_END:
 			vfe_reg_clr(IO_ADDRESS(ISP_REGS_BASE+0x10), (1 << 20));
 			vfe_reg_clr(IO_ADDRESS(ISP_REGS_BASE+0x10), (0xF << 16));
 		}
+		vfe_dump_isp_log(dev);
 		isp_isr(dev->isp_gen_set_pt,dev->isp_3a_result_pt);
 		if((dev->ctrl_para.prev_focus_pos != dev->isp_3a_result_pt->real_vcm_pos  ||
 				dev->isp_gen_set_pt->isp_ini_cfg.isp_test_settings.isp_test_mode != 0 ||
@@ -1316,9 +1401,11 @@ static irqreturn_t vfe_isr(int irq, void *priv)
 	struct csi_int_status status;
 	struct vfe_isp_stat_buf_queue *isp_stat_bq = &dev->isp_stat_bq;
 	struct vfe_isp_stat_buf *stat_buf_pt;
+#ifdef CONFIG_ARCH_SUN8IW8P1		
+	struct timespec timestamp;
+#endif		
+
 	FUNCTION_LOG;
-	vfe_dump_csi_regs(dev);
-	frame_cnt++;
 	vfe_dbg(0,"vfe interrupt!!!\n");
 	if(vfe_is_generating(dev) == 0)
 	{
@@ -1350,12 +1437,15 @@ static irqreturn_t vfe_isr(int irq, void *priv)
 			return IRQ_HANDLED;
 		}
 	}
+	vfe_dump_csi_regs(dev);
+	frame_cnt++;
 
 	FUNCTION_LOG;
 	//spin_lock(&dev->slock);
 	spin_lock_irqsave(&dev->slock, flags);
 	FUNCTION_LOG;
-
+	if(dev->is_bayer_raw)
+		vfe_dbg(0,"LV = %d, temp = %d\n",(dev->isp_gen_set_pt->isp_ini_cfg.isp_3a_settings.ae_max_lv - dev->isp_gen_set_pt->exp_settings.tbl_cnt*4), dev->isp_gen_set_pt->color_temp);
 	//exception handle:
 	if((status.buf_0_overflow) || (status.buf_1_overflow) || (status.buf_2_overflow) || (status.hblank_overflow))
 	{
@@ -1391,7 +1481,7 @@ isp_exp_handle:
 			bsp_isp_irq_disable(FINISH_INT_EN);
 		else
 			bsp_csi_int_disable(dev->vip_sel, dev->cur_ch,CSI_INT_CAPTURE_DONE);
-		vfe_print("capture image mode!\n");
+		vfe_dbg(0,"capture image mode!\n");
 		buf = list_entry(dma_q->active.next,struct vfe_buffer, vb.queue);
 		list_del(&buf->vb.queue);
 		buf->vb.state = VIDEOBUF_DONE;
@@ -1404,17 +1494,17 @@ isp_exp_handle:
 			bsp_csi_int_disable(dev->vip_sel, dev->cur_ch,CSI_INT_FRAME_DONE);
 		if (dev->first_flag == 0) {
 			dev->first_flag++;
-			vfe_dbg(0, "capture video mode!\n");
+			vfe_dbg(0,"capture video mode!\n");
 			goto set_isp_stat_addr;
 		}
 		if (dev->first_flag == 1) {
 			dev->first_flag++;
-			vfe_dbg(0, "capture video first frame done!\n");
+			vfe_dbg(0,"capture video first frame done!\n");
 		}
 
 		//video buffer handle:
 		if ((&dma_q->active) == dma_q->active.next->next->next) {
-			vfe_dbg(0, "Only two buffer left for csi\n");
+			vfe_dbg(0,"Only two buffer left for csi\n");
 			dev->first_flag=0;
 			goto unlock;
 		}
@@ -1422,13 +1512,20 @@ isp_exp_handle:
 
 		/* Nobody is waiting on this buffer*/
 		if (!waitqueue_active(&buf->vb.done)) {
-			vfe_dbg(0, " Nobody is waiting on this video buffer,buf = 0x%p\n",buf);
+			vfe_dbg(0," Nobody is waiting on this video buffer,buf = 0x%p\n",buf);
 		}
 		list_del(&buf->vb.queue);
 		do_gettimeofday(&buf->vb.ts);
+#ifdef CONFIG_ARCH_SUN8IW8P1		
+               ktime_get_ts(&timestamp);
+               buf->vb.ts.tv_sec = timestamp.tv_sec;
+               buf->vb.ts.tv_usec = timestamp.tv_nsec / 1000;
+#endif		
 		buf->vb.field_count++;
-
-		vfe_dbg(0,"video buffer frame interval = %ld\n",buf->vb.ts.tv_sec*1000000+buf->vb.ts.tv_usec - (dev->sec*1000000+dev->usec));
+		//if(frame_cnt%150 == 0){
+		//	printk("video buffer fps = %ld\n",100000000/(buf->vb.ts.tv_sec*1000000+buf->vb.ts.tv_usec - (dev->sec*1000000+dev->usec)));
+		//}
+		vfe_dbg(2,"video buffer frame interval = %ld\n",buf->vb.ts.tv_sec*1000000+buf->vb.ts.tv_usec - (dev->sec*1000000+dev->usec));
 		dev->sec = buf->vb.ts.tv_sec;
 		dev->usec = buf->vb.ts.tv_usec;
 		dev->ms += jiffies_to_msecs(jiffies - dev->jiffies);
@@ -1437,6 +1534,7 @@ isp_exp_handle:
 
 		buf->vb.state = VIDEOBUF_DONE;
 		buf->image_quality = dev->isp_3a_result_pt->image_quality.dwval;
+
 		wake_up(&buf->vb.done);
 
 		//isp_stat_handle:
@@ -1547,7 +1645,7 @@ static int buffer_setup(struct videobuf_queue *vq, unsigned int *count, unsigned
 	struct vfe_dev *dev = vq->priv_data;
 	int buf_max_flag = 0;
 
-	vfe_dbg(1,"buffer_setup\n");
+	vfe_dbg(0,"buffer_setup\n");
 
 	*size = dev->buf_byte_size;
 
@@ -1623,7 +1721,6 @@ static int buffer_prepare(struct videobuf_queue *vq, struct videobuf_buffer *vb,
 
 	vb->boff = videobuf_to_dma_contig(vb);
 	buf->vb.state = VIDEOBUF_PREPARED;
-
 	return 0;
 
 	fail:
@@ -1806,7 +1903,7 @@ static enum v4l2_mbus_pixelcode *try_fmt_internal(struct vfe_dev *dev,struct v4l
 
 	/*judge the resolution*/
 	if(f->fmt.pix.width > MAX_WIDTH || f->fmt.pix.height > MAX_HEIGHT) {
-		// vfe_err("size is too large,automatically set to maximum!\n");
+		vfe_err("size is too large,automatically set to maximum!\n");
 		f->fmt.pix.width = MAX_WIDTH;
 		f->fmt.pix.height = MAX_HEIGHT;
 	}
@@ -1832,7 +1929,7 @@ static enum v4l2_mbus_pixelcode *try_fmt_internal(struct vfe_dev *dev,struct v4l
         }
       }
       if (ret < 0 ) {
-        vfe_err("try bayer bus error when pix fmt is yuv422/yuv420 at %s!\n",__func__);
+        vfe_dbg(0, "try bayer bus error when pix fmt is yuv422/yuv420 at %s!\n",__func__);
         for(bus_pix_code = try_yuv422_bus; bus_pix_code < try_yuv422_bus + N_TRY_YUV422; bus_pix_code++) {
           ccm_fmt.code  = *bus_pix_code;
           ccm_fmt.field = f->fmt.pix.field;
@@ -1843,7 +1940,7 @@ static enum v4l2_mbus_pixelcode *try_fmt_internal(struct vfe_dev *dev,struct v4l
           }
         }
         if (ret < 0) {
-          vfe_err("try yuv22 fmt error when pix fmt is yuv422/yuv420 at %s!\n",__func__);
+          vfe_dbg(0, "try yuv22 fmt error when pix fmt is yuv422/yuv420 at %s!\n",__func__);
           if(pix_fmt_type == YUV420_PL || pix_fmt_type == YUV420_SPL) {
             for(bus_pix_code = try_yuv420_bus; bus_pix_code < try_yuv420_bus + N_TRY_YUV420; bus_pix_code++) {
               ccm_fmt.code  = *bus_pix_code;
@@ -1855,7 +1952,7 @@ static enum v4l2_mbus_pixelcode *try_fmt_internal(struct vfe_dev *dev,struct v4l
               }
             }
             if (ret < 0) {
-              vfe_err("try yuv420 bus error when pix fmt is yuv420 at %s!\n",__func__);
+              vfe_dbg(0, "try yuv420 bus error when pix fmt is yuv420 at %s!\n",__func__);
               return NULL;
             }
           } else {
@@ -1896,7 +1993,7 @@ static enum v4l2_mbus_pixelcode *try_fmt_internal(struct vfe_dev *dev,struct v4l
       }
     }
     if (ret < 0) {
-      vfe_err("try yuv422 bus error when pix fmt is yuv422 interleaved at %s!\n",__func__);
+      vfe_dbg(0, "try yuv422 bus error when pix fmt is yuv422 interleaved at %s!\n",__func__);
       return NULL;
     }
   } else if (pix_fmt_type == BAYER_RGB) {
@@ -1906,12 +2003,12 @@ static enum v4l2_mbus_pixelcode *try_fmt_internal(struct vfe_dev *dev,struct v4l
       ccm_fmt.field = f->fmt.pix.field;
       ret = v4l2_subdev_call(dev->sd,video,try_mbus_fmt,&ccm_fmt);
       if (ret >= 0) {
-        vfe_dbg(0,"try bayer bus ok when pix fmt is bayer rgb at %s!\n",__func__);
+        vfe_dbg(0, "try bayer bus ok when pix fmt is bayer rgb at %s!\n",__func__);
         break;
       }
     }
     if (ret < 0) {
-      vfe_err("try bayer bus error when pix fmt is bayer rgb at %s!\n",__func__);
+      vfe_dbg(0, "try bayer bus error when pix fmt is bayer rgb at %s!\n",__func__);
       return NULL;
     }
   } else if (pix_fmt_type == RGB565) {
@@ -1926,7 +2023,7 @@ static enum v4l2_mbus_pixelcode *try_fmt_internal(struct vfe_dev *dev,struct v4l
       }
     }
     if (ret < 0) {
-      vfe_err("try rgb565 bus error when pix fmt is rgb565 at %s!\n",__func__);
+      vfe_dbg(0, "try rgb565 bus error when pix fmt is rgb565 at %s!\n",__func__);
       return NULL;
     }
   } else if (pix_fmt_type == RGB888 || pix_fmt_type == PRGB888) {
@@ -1941,7 +2038,7 @@ static enum v4l2_mbus_pixelcode *try_fmt_internal(struct vfe_dev *dev,struct v4l
       }
     }
     if (ret < 0) {
-      vfe_err("try rgb888 bus error when pix fmt is rgb888/prgb888 at %s!\n",__func__);
+      vfe_dbg(0, "try rgb888 bus error when pix fmt is rgb888/prgb888 at %s!\n",__func__);
       return NULL;
     }
   } else {
@@ -2005,7 +2102,7 @@ static int vidioc_try_fmt_vid_cap(struct file *file, void *priv,
 
 	bus_pix_code = try_fmt_internal(dev,f);
 	if(!bus_pix_code) {
-		vfe_err("pixel format (0x%08x) width %d height %d invalid at %s.\n", \
+		vfe_dbg(0, "pixel format (0x%08x) width %d height %d invalid at %s.\n", \
 		f->fmt.pix.pixelformat,f->fmt.pix.width,f->fmt.pix.height,__func__);
 		return -EINVAL;
 	}
@@ -2033,10 +2130,10 @@ static int vidioc_s_fmt_vid_cap(struct file *file, void *priv,
   unsigned int i,scale_ratio;
   int ret;
 
-  vfe_dbg(0,"vidioc_s_fmt_vid_cap\n");
+  vfe_dbg(0, "vidioc_s_fmt_vid_cap\n");
 
   if (vfe_is_generating(dev)) {
-    vfe_err("%s device busy\n", __func__);
+    vfe_dbg(0, "%s device busy\n", __func__);
     return -EBUSY;
   }
 
@@ -2044,7 +2141,7 @@ static int vidioc_s_fmt_vid_cap(struct file *file, void *priv,
 
   bus_pix_code = try_fmt_internal(dev,f);
   if(!bus_pix_code) {
-    vfe_err("pixel format (0x%08x) width %d height %d invalid at %s.\n", \
+    vfe_dbg(0, "pixel format (0x%08x) width %d height %d invalid at %s.\n", \
     f->fmt.pix.pixelformat,f->fmt.pix.width,f->fmt.pix.height,__func__);
     ret = -EINVAL;
     goto out;
@@ -2347,13 +2444,13 @@ static int vidioc_s_fmt_vid_cap(struct file *file, void *priv,
 		isp_size[ROT_CH].width = 0;
 		isp_fmt[ROT_CH] = PIX_FMT_NONE;
 	}
-
+	
 	if(f->fmt.pix.subchannel != NULL)	{
 		dev->isp_gen_set_pt->double_ch_flag = 1;
 	} else {
 		dev->isp_gen_set_pt->double_ch_flag = 0;
 	}
-
+  
 	//dev->buf_byte_size = bsp_isp_set_size(isp_fmt,&ob_black_size, &ob_valid_size, &isp_size[MAIN_CH],&isp_size[ROT_CH],&ob_start,&isp_size[SUB_CH]);
 	size_settings.full_size = isp_size[MAIN_CH];
 	size_settings.scale_size = isp_size[SUB_CH];
@@ -2416,6 +2513,17 @@ static int vidioc_s_fmt_vid_cap(struct file *file, void *priv,
 				set_sensor_shutter(dev,dev->isp_3a_result_pt->exp_line_num);
 				set_sensor_gain(dev,dev->isp_3a_result_pt->exp_analog_gain);
 			}
+			if(f->fmt.pix.subchannel)
+			{
+				if(isp_fmt[SUB_CH] >= PIX_FMT_SBGGR_8&& isp_fmt[SUB_CH] <= PIX_FMT_SRGGB_12)
+				{
+					//after crop		
+					vfe_reg_clr_set(IO_ADDRESS(ISP_REGS_BASE+0x10), (0xF << 16), (1 << 16));
+					vfe_reg_set(IO_ADDRESS(ISP_REGS_BASE+0x10), (1 << 20));
+					dev->isp_gen_set_pt->sensor_mod = VIDEO_MODE;
+				}
+			}
+
 			usleep_range(50000,60000);
 		}
 		else
@@ -2459,7 +2567,7 @@ static int vidioc_dqbuf(struct file *file, void *priv, struct v4l2_buffer *p)
 {
 	int ret = 0;
 	struct vfe_dev *dev = video_drvdata(file);
-	vfe_dbg(0,"vidioc dqbuf\n");
+	vfe_dbg(2,"vidioc dqbuf\n");
 	ret = videobuf_dqbuf(&dev->vb_vidq, p, file->f_flags & O_NONBLOCK);
 	//if (dev->isp_3a_result_pt != NULL && dev->is_bayer_raw)
 	//{
@@ -2491,14 +2599,14 @@ static int vidioc_streamon(struct file *file, void *priv, enum v4l2_buf_type i)
   int ret = 0;
   mutex_lock(&dev->stream_lock);
 //  spin_lock(&dev->slock);//debug
-  vfe_dbg(0,"video stream on\n");
+  vfe_dbg(0, "video stream on\n");
   if (i != V4L2_BUF_TYPE_VIDEO_CAPTURE) {
     ret = -EINVAL;
     goto streamon_unlock;
   }
 
   if (vfe_is_generating(dev)) {
-    vfe_err("stream has been already on\n");
+    vfe_dbg(0, "stream has been already on\n");
     ret = -1;
     goto streamon_unlock;
   }
@@ -2555,25 +2663,38 @@ static int vidioc_streamon(struct file *file, void *priv, enum v4l2_buf_type i)
                                                   CSI_INT_BUF_2_OVERFLOW | \
                                                   CSI_INT_HBLANK_OVERFLOW);
   }
-  if(dev->mbus_type == V4L2_MBUS_CSI2)
-    bsp_mipi_csi_protocol_enable(dev->mipi_sel);
-  usleep_range(10000,11000);
 
-  if (dev->capture_mode == V4L2_MODE_IMAGE) {
-    if (dev->is_isp_used)
-      bsp_isp_image_capture_start();
-    bsp_csi_cap_start(dev->vip_sel, dev->total_rx_ch,CSI_SCAP);
-  } else {
-    if (dev->is_isp_used)
-      bsp_isp_video_capture_start();
-    bsp_csi_cap_start(dev->vip_sel, dev->total_rx_ch,CSI_VCAP);
-  }
-//  if(dev->mbus_type == V4L2_MBUS_CSI2)
-//    bsp_mipi_csi_protocol_enable(dev->mipi_sel);
-  vfe_start_generating(dev);
+#if defined (CONFIG_ARCH_SUN8IW8P1)
+	if(dev->mbus_type == V4L2_MBUS_CSI2)
+		bsp_mipi_csi_protocol_enable(dev->mipi_sel);
+	usleep_range(10000,11000);
+
+	if (dev->capture_mode == V4L2_MODE_IMAGE) {
+		if (dev->is_isp_used)
+			bsp_isp_image_capture_start();
+		bsp_csi_cap_start(dev->vip_sel, dev->total_rx_ch,CSI_SCAP);
+	} else {
+		if (dev->is_isp_used)
+			bsp_isp_video_capture_start();
+		bsp_csi_cap_start(dev->vip_sel, dev->total_rx_ch,CSI_VCAP);
+	}
+#else
+	if (dev->capture_mode == V4L2_MODE_IMAGE) {
+		if (dev->is_isp_used)
+			bsp_isp_image_capture_start();
+		bsp_csi_cap_start(dev->vip_sel, dev->total_rx_ch,CSI_SCAP);
+	} else {
+		if (dev->is_isp_used)
+			bsp_isp_video_capture_start();
+		bsp_csi_cap_start(dev->vip_sel, dev->total_rx_ch,CSI_VCAP);
+	}
+	if(dev->mbus_type == V4L2_MBUS_CSI2)
+		bsp_mipi_csi_protocol_enable(dev->mipi_sel);
+#endif
+	vfe_start_generating(dev);
 
 streamon_unlock:
-//  spin_unlock(&dev->slock);//debug
+	//  spin_unlock(&dev->slock);//debug
   mutex_unlock(&dev->stream_lock);
 
   return ret;
@@ -2588,7 +2709,7 @@ static int vidioc_streamoff(struct file *file, void *priv, enum v4l2_buf_type i)
   mutex_lock(&dev->stream_lock);
   vfe_dbg(0,"video stream off\n");
   if (!vfe_is_generating(dev)) {
-    vfe_dbg(0, "stream has been already off\n");
+    vfe_dbg(0,"stream has been already off\n");
     ret = 0;
     goto streamoff_unlock;
   }
@@ -2656,7 +2777,7 @@ static int vidioc_enum_input(struct file *file, void *priv,
 {
 	struct vfe_dev *dev = video_drvdata(file);
 	if (inp->index > dev->dev_qty-1) {
-		// vfe_err("input index(%d) > dev->dev_qty(%d)-1 invalid!\n", inp->index, dev->dev_qty);
+		vfe_err("input index(%d) > dev->dev_qty(%d)-1 invalid!\n", inp->index, dev->dev_qty);
 		return -EINVAL;
 	}
 	if (0 == dev->device_valid_flag[inp->index]) {
@@ -2725,12 +2846,12 @@ static int internal_s_input(struct vfe_dev *dev, unsigned int i)
 	if(get_sensor_info(dev->ccm_cfg[i]->ccm, &sensor_info) == 0)
 	{
 		os_clk_set_rate(dev->clock.vfe_core_clk, sensor_info.core_clk_for_sensor);
-		vfe_dbg(0, "Set vfe core clk = %d, after Set vfe core clk = %ld \n",sensor_info.core_clk_for_sensor, clk_get_rate(dev->clock.vfe_core_clk));
+		vfe_dbg(0,"Set vfe core clk = %d, after Set vfe core clk = %ld \n",sensor_info.core_clk_for_sensor, clk_get_rate(dev->clock.vfe_core_clk));
 	}
 	else
 	{
 		os_clk_set_rate(dev->clock.vfe_core_clk, VFE_CORE_CLK_RATE);
-		vfe_dbg(0, "Not find this sensor info, Set vfe core clk = %d, after Set vfe core clk = %ld \n",VFE_CORE_CLK_RATE, clk_get_rate(dev->clock.vfe_core_clk));
+		vfe_warn("Not find this sensor info, Set vfe core clk = %d, after Set vfe core clk = %ld \n",VFE_CORE_CLK_RATE, clk_get_rate(dev->clock.vfe_core_clk));
 	}
 
 	//alternate isp setting
@@ -2823,6 +2944,8 @@ static int internal_s_input(struct vfe_dev *dev, unsigned int i)
 			bsp_isp_mirror_enable(MAIN_CH);
 			bsp_isp_mirror_enable(SUB_CH);
 		}
+		dev->isp_gen_set_pt->hflip = dev->ctrl_para.hflip;
+		dev->isp_gen_set_pt->vflip = dev->ctrl_para.vflip;
 	} else {
 		bsp_isp_exit();
 		/* Set the initial flip */
@@ -3055,8 +3178,7 @@ static int vidioc_queryctrl(struct file *file, void *priv,
     {
       if(qc->id != V4L2_CID_GAIN)
       {
-        vfe_dbg(0, "v4l2 sub device queryctrl unsuccess,id = %x!\n",qc->id);
-
+        vfe_dbg(0, "v4l2 sub device queryctrl %s unsuccess!\n", v4l2_ctrl_get_name(qc->id));
       }
     }
   }
@@ -3178,8 +3300,8 @@ static int vidioc_g_ctrl(struct file *file, void *priv,
         ctrl->value = dev->ctrl_para.exp_auto_pri;
         break;
       case V4L2_CID_FOCUS_ABSOLUTE:
-        ctrl->value = CLIP(((dev->isp_3a_result_pt->real_vcm_pos - dev->isp_gen_set_pt->stat.vcm_cfg.vcm_min_code ) << 10) /
-        			(dev->isp_gen_set_pt->stat.vcm_cfg.vcm_max_code -
+        ctrl->value = CLIP(((dev->isp_3a_result_pt->real_vcm_pos - dev->isp_gen_set_pt->stat.vcm_cfg.vcm_min_code ) << 10) / 
+        			(dev->isp_gen_set_pt->stat.vcm_cfg.vcm_max_code - 
         			dev->isp_gen_set_pt->stat.vcm_cfg.vcm_min_code ), 0, 1023);
         break;
       case V4L2_CID_FOCUS_RELATIVE:
@@ -3357,7 +3479,11 @@ static int vidioc_s_ctrl(struct file *file, void *priv,
     switch (ctrl->id) {
       //V4L2_CID_BASE
       case V4L2_CID_BRIGHTNESS:
+#ifdef CONFIG_ARCH_SUN8IW8P1
+#else
 		bsp_isp_s_brightness(dev->isp_gen_set_pt, ctrl->value);
+
+#endif
 		dev->ctrl_para.brightness = ctrl->value;
 		break;
 	  case V4L2_CID_CONTRAST:
@@ -3391,19 +3517,31 @@ static int vidioc_s_ctrl(struct file *file, void *priv,
       case V4L2_CID_GAIN:
         return v4l2_subdev_call(dev->sd,core,s_ctrl,ctrl);
       case V4L2_CID_HFLIP:
-        if(ctrl->value == 0)
-          bsp_isp_mirror_disable(MAIN_CH);
-        else
-          bsp_isp_mirror_enable(MAIN_CH);
-        dev->ctrl_para.hflip = ctrl->value;
-        break;
+		if(ctrl->value == 0){
+			bsp_isp_mirror_disable(MAIN_CH);
+			bsp_isp_mirror_disable(SUB_CH);
+
+		}else{
+			bsp_isp_mirror_enable(MAIN_CH);
+			bsp_isp_mirror_enable(SUB_CH);
+		}
+		dev->isp_gen_set_pt->hflip = ctrl->value;
+		dev->ctrl_para.hflip = ctrl->value;
+		break;
       case V4L2_CID_VFLIP:
-        if(ctrl->value == 0)
-          bsp_isp_flip_disable(MAIN_CH);
-        else
-          bsp_isp_flip_enable(MAIN_CH);
-        dev->ctrl_para.vflip = ctrl->value;
-        break;
+		if(ctrl->value == 0) {
+			bsp_isp_flip_disable(MAIN_CH);
+			bsp_isp_flip_disable(SUB_CH);
+		} else {
+			bsp_isp_flip_enable(MAIN_CH);
+			bsp_isp_flip_enable(SUB_CH);
+		}
+		dev->isp_gen_set_pt->vflip = ctrl->value;
+		dev->ctrl_para.vflip = ctrl->value;
+		if(dev->is_isp_used) {
+			bsp_isp_set_output_addr(dev->isp_gen_set_pt->output_addr);
+		}
+		break;
       case V4L2_CID_POWER_LINE_FREQUENCY:
         bsp_isp_s_power_line_frequency(dev->isp_gen_set_pt, v4l2_bf_to_common(ctrl->value));
         dev->ctrl_para.band_stop_mode = ctrl->value;
@@ -3570,19 +3708,11 @@ static int vidioc_s_ctrl(struct file *file, void *priv,
         break;
       //V4L2_CID_PRIVATE_BASE
       case V4L2_CID_HFLIP_THUMB:
-        if(ctrl->value == 0)
-          bsp_isp_mirror_disable(SUB_CH);
-        else
-          bsp_isp_mirror_enable(SUB_CH);
-        dev->ctrl_para.hflip_thumb = ctrl->value;
-        break;
+		dev->ctrl_para.hflip_thumb = ctrl->value;
+		break;
       case V4L2_CID_VFLIP_THUMB:
-        if(ctrl->value == 0)
-          bsp_isp_flip_disable(SUB_CH);
-        else
-          bsp_isp_flip_enable(SUB_CH);
-        dev->ctrl_para.vflip_thumb = ctrl->value;
-        break;
+		dev->ctrl_para.vflip_thumb = ctrl->value;
+		break;
       case V4L2_CID_AUTO_FOCUS_WIN_NUM:
         if(ctrl->value == 0) {
           bsp_isp_s_auto_focus_win_num(dev->isp_gen_set_pt, AF_AUTO_WIN, NULL);
@@ -3822,6 +3952,7 @@ static int isp_exif_req (struct file *file, struct v4l2_fh *fh, struct isp_exif_
 		}
 		exif_attr->reserved[0] = dev->isp_3a_result_pt->real_vcm_pos;
 		exif_attr->reserved[1] = dev->isp_gen_set_pt->color_temp;
+		exif_attr->reserved[2] = dev->isp_3a_result_pt->lv;
 	}
 	else
 	{
@@ -3885,27 +4016,26 @@ static unsigned int vfe_poll(struct file *file, struct poll_table_struct *wait)
 void vfe_clk_open(struct vfe_dev *dev)
 {
 	//hardware
-	vfe_dbg(0, "..........................vfe clk open!.......................\n");
+	vfe_dbg(0,"..........................vfe clk open!.......................\n");
 	vfe_dphy_clk_set(dev,DPHY_CLK);
 	vfe_clk_enable(dev);
 	vfe_reset_disable(dev);
 }
 void vfe_clk_close(struct vfe_dev *dev)
 {
-	vfe_dbg(0, "..........................vfe clk close!.......................\n");
+	vfe_dbg(0,"..........................vfe clk close!.......................\n");
 	vfe_clk_disable(dev);
 	if(vfe_opened_num < 2)
 	{
 		vfe_reset_enable(dev);
 	}
-	vfe_opened_num--;
 }
 static int vfe_open(struct file *file)
 {
 	struct vfe_dev *dev = video_drvdata(file);
 	int ret;//,input_num;
 
-	vfe_dbg(0, "vfe_open\n");
+	vfe_dbg(0,"vfe_open\n");
 	if (vfe_is_opened(dev)) {
 		vfe_err("device open busy\n");
 		ret = -EBUSY;
@@ -3936,7 +4066,7 @@ static int vfe_open(struct file *file)
 	dev->input = -1;//default input null
 	dev->first_flag = 0;
 	vfe_start_opened(dev);
-
+	vfe_init_isp_log(dev);
 	open_end:
 	if (ret != 0){
 		//up(&dev->standby_seq_sema);
@@ -3944,21 +4074,20 @@ static int vfe_open(struct file *file)
 	}
 	else
 	{
-		vfe_dbg(0, "vfe_open ok\n");
+		vfe_dbg(0,"vfe_open ok\n");
 		vfe_opened_num ++;
-
-    if (dev->input == -1) {
-      int i;
-      for (i = 0; i < dev->dev_qty; i++) {
-        if (!dev->device_valid_flag[i]) break;
-      }
-      if (i > 0) i -= 1;
-      ret = internal_s_input(dev , i);
-      if (!ret) vfe_dbg(0, "vfe set a valid input %d\n", i);
-    }
-
+        if (dev->input == -1) 
+        {
+            int i;
+            for (i = 0; i < dev->dev_qty; i++) 
+            {
+                if (!dev->device_valid_flag[i]) break;
+            }
+            if (i > 0) i -= 1;
+            ret = internal_s_input(dev , i);
+            if (!ret) vfe_dbg(0, "vfe set a valid input %d\n", i);
+        }
 	}
-
 	return ret;
 }
 
@@ -4024,8 +4153,10 @@ static int vfe_close(struct file *file)
 	vfe_stop_opened(dev);
 	dev->ctrl_para.prev_exp_line = 0;
 	dev->ctrl_para.prev_ana_gain = 1;
-	vfe_dbg(0, "vfe_close end\n");
+	vfe_dbg(0,"vfe_close end\n");
 	up(&dev->standby_seq_sema);
+	vfe_exit_isp_log(dev);
+	vfe_opened_num--;
 	return 0;
 }
 
@@ -4618,6 +4749,9 @@ static int vfe_sensor_check(struct vfe_dev *dev)
 	int ret = 0;
 	struct v4l2_subdev *sd = dev->sd;
 	vfe_print("Check sensor!\n");
+#ifdef CONFIG_ARCH_SUN8IW8P1	
+	return 0;
+#endif
 	vfe_set_sensor_power_on(dev);
 #ifdef USE_SPECIFIC_CCI
 	csi_cci_init_helper(dev->vip_sel);
@@ -4918,6 +5052,8 @@ static void probe_work_handle(struct work_struct *work)
 	mutex_lock(&probe_hdl_lock);
 	vfe_print("probe_work_handle start!\n");
 	vfe_dbg(0,"v4l2_device_register\n");
+	if(dev->dev_qty == 0)
+		goto probe_hdl_clk_close;
 	/* v4l2 device register */
 	ret = v4l2_device_register(&dev->pdev->dev, &dev->v4l2_dev);
 	if (ret) {
@@ -4979,7 +5115,7 @@ static void probe_work_handle(struct work_struct *work)
 		}
 		if(dev->ccm_cfg[input_num]->is_isp_used && dev->ccm_cfg[input_num]->is_bayer_raw)
 		{
-			if(read_ini_info(dev,input_num))
+			if(read_ini_info(dev,input_num, "/system/etc/hawkview/"))
 			{
 				vfe_warn("read ini info fail\n");
 			}
@@ -5047,6 +5183,7 @@ static void probe_work_handle(struct work_struct *work)
 	vfe_print("register_early_suspend @ probe handle!\n");
 #endif
 
+probe_hdl_clk_close:
 #ifdef USE_SPECIFIC_CCI
 	vfe_clk_close(dev);
 #endif
@@ -5198,7 +5335,7 @@ static int vfe_probe(struct platform_device *pdev)
 		ret = bsp_mipi_csi_set_base_addr(dev->mipi_sel, 0);
 		if(ret < 0)
 			goto free_resource;
-		ret = bsp_mipi_dphy_set_base_addr(dev->mipi_sel, 0);
+		ret = bsp_mipi_dphy_set_base_addr(dev->mipi_sel, 0);    
 		if(ret < 0)
 			goto free_resource;
 #endif
@@ -5514,12 +5651,16 @@ static void vfe_shutdown(struct platform_device *pdev)
 	unsigned int input_num;
 	int ret = 0;
 	//close all the device power
-	for (input_num=0; input_num<dev->dev_qty; input_num++) {
-		/* update target device info and select it */
-		update_ccm_info(dev, dev->ccm_cfg[input_num]);
-		ret = vfe_set_sensor_power_off(dev);
-		if (ret!=0) {
-			vfe_err("sensor power off error at device number %d when csi close!\n",input_num);
+	vfe_print("vfe_opened_num = %d\n", vfe_opened_num);
+	if(vfe_opened_num > 0)
+	{
+		for (input_num=0; input_num<dev->dev_qty; input_num++) {
+			/* update target device info and select it */
+			update_ccm_info(dev, dev->ccm_cfg[input_num]);
+			ret = vfe_set_sensor_power_off(dev);
+			if (ret!=0) {
+				vfe_err("sensor power off error at device number %d when csi close!\n",input_num);
+			}
 		}
 	}
 #endif
@@ -5680,3 +5821,5 @@ module_exit(vfe_exit);
 MODULE_AUTHOR("raymonxiu");
 MODULE_LICENSE("Dual BSD/GPL");
 MODULE_DESCRIPTION("Video front end driver for sunxi");
+
+

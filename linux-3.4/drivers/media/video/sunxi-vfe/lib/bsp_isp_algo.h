@@ -290,6 +290,14 @@ struct vcm_para
 	int vcm_step;
 	int vcm_table;
 };
+struct isp_video_stabilization
+{
+	int move_dir;
+	int move_step;
+	int hor_off;
+	int ver_off;
+};
+
 
 struct isp_stat_buffer
 {
@@ -338,6 +346,7 @@ struct isp_3a_result
 	unsigned int exp_analog_gain;       //16bits,Q8
 	unsigned int exp_digital_gain;      //16bits,Q8
 	unsigned int ae_gain;               //16bits,Q8
+	unsigned int lv;               //LV*100
 
 	int min_rgb_pre[8];
 	int defog_pre;
@@ -356,6 +365,7 @@ struct isp_3a_result
 	unsigned int motion_flag;
 	unsigned int ae_avp_to_af;
 
+	struct isp_video_stabilization video_stab;
 	struct isp_denoise filter_2d_coef;
 	enum isp_bndf_mode filter_mode;
 
@@ -463,6 +473,8 @@ struct exposure_settings
 	int expect_tbl_cnt;
 	int tbl_max_ind;
 	int exposure_cfg[2];
+	int ae_hist_cfg[4];
+	int ae_hist_eq_cfg[5];	
 	int iso_index;
 };
 
@@ -479,6 +491,7 @@ struct auto_focus_settings
 	enum auto_focus_win_mode af_win_mode;
 	enum auto_focus_range af_range;
 	isp_bool focus_lock;
+	unsigned int af_interval_frame;
 };
 
 /*
@@ -500,36 +513,6 @@ struct drc_gen_ctrl
 	unsigned int pic_size;
 	unsigned int pic_avg;
 	unsigned int hi_cnt;
-};
-
-
-
-/*
-*
-*struct isp_alg_para.
-*
-*/
-struct isp_alg_para
-{
-	int defog_min_rgb;
-	unsigned int af_interval_frame;
-
-	//AFS
-	unsigned int afs_def_min_exp;
-
-	//AF
-	int af_small_step;
-	int af_mid_step;
-	int af_min_focus_value;
-	int af_monitor_start_frame;
-	int af_monitor_th_dec_slop1;
-	int af_monitor_th_dec_slop2;
-	int af_monitor_th_inc_slop1;
-	int af_monitor_th_inc_slop2;
-	int af_monitor_num;
-	int af_monitor_th_toss_range;
-	int af_focus_value_rs;
-	int af_vcm_def_pos;
 };
 
 struct isp_test_param
@@ -591,9 +574,7 @@ struct isp_3a_param
 	int ae_table_capture[28];
 	int ae_table_video[28];
 	int ae_win_weight[64];
-
-	int ae_lum_low_th;
-	int ae_lum_high_th;
+	int ae_hist_mod_en;
 	int ae_window_overexp_weigth;
 	int ae_hist_overexp_weight;
 	int ae_video_speed;
@@ -609,26 +590,27 @@ struct isp_3a_param
 
 	/*isp awb param */
 	int awb_interval;
-	//int awb_mode_select;
-	//int awb_light_param[21];
-	//int awb_coeff[30];
-	//int awb_tolerance;
+	int awb_speed;
 	int awb_color_temper_low;
 	int awb_color_temper_high;
-	//int r_gain_2900k;
-	//int b_gain_2900k;
 	int awb_light_num;
 	int awb_ext_light_num;
 	int awb_skin_color_num;
-	int awb_light_info[300];
-	int awb_ext_light_info[90];
-	int awb_skin_color_info[40];
+	int awb_light_info[320];
+	int awb_ext_light_info[320];
+	int awb_skin_color_info[160];
 	int awb_preset_gain[22];
-	//struct isp_rgb2rgb_gain_offset color_matrix_inv;
 
 	/*isp af param */
 	int vcm_min_code;
 	int vcm_max_code;
+	int af_interval_time;
+	int af_speed_ind; //0~5
+	int af_auto_fine_en;
+	int af_single_fine_en;
+	int af_fine_step;
+	int af_move_cnt;
+	int af_still_cnt;
 };
 
 struct isp_iso_element
@@ -646,7 +628,8 @@ struct isp_iso_element
 	int saturation_cfg[4];
 	int sharp_cfg_hal[2];
 	int ae_cfg[2];
-	int reserved[2];
+	int ae_hist[4];
+	int ae_hist_eq[5];
 };
 
 struct isp_iso_param
@@ -754,8 +737,10 @@ struct isp_gen_settings
 	int brightness;
 	int sharpness;
 	int saturation;
-
+	int hflip;
+	int vflip;
 	int hue;
+	int output_addr;
 	enum gsensor_direction gsensor_dir;
 	enum sensor_mode sensor_mod;
 	struct sensor_band_step_config band_step_cfg;
@@ -764,7 +749,7 @@ struct isp_gen_settings
 	struct h3a_win win;
 	unsigned int awb_inter_frame_cnt;
 	unsigned int awb_frame_cnt;
-
+	unsigned int frame_rate_max;
 	unsigned int ae_frame_cnt;
 	unsigned int af_frame_cnt;
 
@@ -777,9 +762,8 @@ struct isp_gen_settings
 	/* ISP module config */
 	struct isp_module_config module_cfg;
 	//unsigned int isp_module_update_flags;
-
-	struct isp_alg_para alg_para;
 	struct isp_init_config isp_ini_cfg;
+	int defog_min_rgb;
 
 	unsigned alg_frame_cnt;
 	unsigned take_pic_start_cnt;
@@ -788,10 +772,10 @@ struct isp_gen_settings
 	int take_picture_done;
 	int blend_curve[256];
 	enum isp_test_mode test_mode;
-	int man_focus_len;
-	int man_gain;
 	int sharp_cfg_to_hal[2];
 	int double_ch_flag;
+	int enable_log;
+	int awb_buf[3072];
 };
 
 /*

@@ -5400,7 +5400,7 @@ static int sensor_g_single_af(struct v4l2_subdev *sd)
 		if (ret < 0)
 		{
 			vfe_dev_err("sensor_g_single_af read error !\n");
-			ret = -EAGAIN;
+			ret = V4L2_AUTO_FOCUS_STATUS_FAILED;
 			goto af_out;
 		}
 	
@@ -5408,7 +5408,7 @@ static int sensor_g_single_af(struct v4l2_subdev *sd)
 			vfe_dev_dbg("Single AF 1st is busy,value = 0x%4x\n",rdval);
 			msleep(50);
 			coarse_af_pd = 0;
-			return EBUSY;
+			return V4L2_AUTO_FOCUS_STATUS_BUSY;
 		} else if (rdval == 0x0002) {
 			//focus ok
 			coarse_af_pd = 1;
@@ -5417,7 +5417,7 @@ static int sensor_g_single_af(struct v4l2_subdev *sd)
 			vfe_dev_print("Single AF 1st is failed,value = 0x%4x\n",rdval);
 			info->focus_status = 0;	//idle
 			coarse_af_pd = 2;
-			ret = EFAULT;
+			ret = V4L2_AUTO_FOCUS_STATUS_FAILED;
 			goto af_out;
 		}
 	}
@@ -5440,7 +5440,7 @@ static int sensor_g_single_af(struct v4l2_subdev *sd)
 
 	if((rdval&0xff00)!=0x0000) {
 		vfe_dev_dbg("Single AF 2nd is busy,value = 0x%4x\n",rdval);
-		return EBUSY;
+		return V4L2_AUTO_FOCUS_STATUS_BUSY;
 	}
 	
 	vfe_dev_print("Single AF 2nd is complete,value = 0x%4x\n",rdval);
@@ -5452,7 +5452,7 @@ af_out:
 	//ae lock off
 	sensor_ae_awb_lockoff(sd);
 	
-	return ret;
+	return V4L2_AUTO_FOCUS_STATUS_REACHED;
 }
 
 static int sensor_g_contin_af(struct v4l2_subdev *sd)
