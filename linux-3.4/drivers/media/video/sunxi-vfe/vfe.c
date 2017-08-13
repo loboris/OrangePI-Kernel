@@ -4037,7 +4037,7 @@ static int vfe_open(struct file *file)
 
 	vfe_dbg(0,"vfe_open\n");
 	if (vfe_is_opened(dev)) {
-		vfe_err("device open busy\n");
+		vfe_dbg(0, "device open busy\n");
 		ret = -EBUSY;
 		goto open_end;
 	}
@@ -5064,6 +5064,7 @@ static void probe_work_handle(struct work_struct *work)
 	vfe_dbg(0,"v4l2 subdev register\n");
 	/* v4l2 subdev register */
 	dev->is_same_module = 0;
+    int dev_valid_input = 0;
 	for(input_num=0; input_num<dev->dev_qty; input_num++)
 	{
 		vfe_print("v4l2 subdev register input_num = %d\n",input_num);
@@ -5112,6 +5113,7 @@ static void probe_work_handle(struct work_struct *work)
 		}
 		else{
 			dev->device_valid_flag[input_num] = 1;
+            dev_valid_input = 1;
 		}
 		if(dev->ccm_cfg[input_num]->is_isp_used && dev->ccm_cfg[input_num]->is_bayer_raw)
 		{
@@ -5140,6 +5142,9 @@ static void probe_work_handle(struct work_struct *work)
 		//    dev->ccm_cfg[input_num]->ccm_info.mclk = MCLK_OUT_RATE;
 		//    dev->ccm_cfg[input_num]->ccm_info.stby_mode = dev->ccm_cfg[input_num]->ccm_info.stby_mode;
 	}
+	
+	if (!dev_valid_input) goto probe_hdl_unreg_dev;
+
 	dev->input = -1;
 	/*video device register */
 	ret = -ENOMEM;

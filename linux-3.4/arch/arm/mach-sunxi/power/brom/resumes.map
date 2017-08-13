@@ -71,9 +71,9 @@ OUTPUT(arch/arm/mach-sunxi/power/brom/resumes.elf elf32-littlearm)
 .debug_line     0x00000000       0x7b
  .debug_line    0x00000000       0x7b arch/arm/mach-sunxi/power/brom/resume_head.o
 
-.debug_str      0x00000000      0x15a
- .debug_str     0x00000000      0x15a arch/arm/mach-sunxi/power/brom/resume_head.o
-                                0x173 (size before relaxing)
+.debug_str      0x00000000      0x157
+ .debug_str     0x00000000      0x157 arch/arm/mach-sunxi/power/brom/resume_head.o
+                                0x170 (size before relaxing)
 
 .comment        0x00000000       0x64
  .comment       0x00000000       0x64 arch/arm/mach-sunxi/power/brom/resume_head.o
