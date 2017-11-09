@@ -70,6 +70,7 @@ struct isp_drc_config
 {
 	enum isp_rgb_drc_mode rgb_drc_mode;
 	unsigned short drc_table[ISP_DRC_TBL_SIZE];
+	unsigned short drc_table_last[ISP_DRC_TBL_SIZE];
 };
 
 /*

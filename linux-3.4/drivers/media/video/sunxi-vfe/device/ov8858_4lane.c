@@ -106,6 +106,7 @@ static inline struct sensor_info *to_state(struct v4l2_subdev *sd)
 static struct regval_list sensor_default_regs[] = {
 	//4lane initial
 	{0x0103, 0x01},// ; software reset
+	{REG_DLY,0x10}, //must delay
 	{0x0100, 0x00},// ; software standby
 	{0x0100, 0x00},// ;
 	{0x0100, 0x00},// ;
@@ -416,6 +417,7 @@ static struct regval_list sensor_default_regs[] = {
 static struct regval_list sensor_quxga_regs[] = {
 	//@@3264_2448_4lane_30fps_720Mbps/lane
 	{0x0100, 0x00},//
+	{REG_DLY,0x05}, //must delay
 	{0x030f, 0x04},// ; pll2_divsp
 	{0x3501, 0x9a},// ; exposure M
 	{0x3502, 0x20},// ; exposure L
@@ -518,6 +520,7 @@ static struct regval_list sensor_quxga_regs[] = {
 static struct regval_list sensor_6M_regs[] = { 
 	//@@3264_1836_4Lane_30fps_720Mbps/lane
 	{0x0100, 0x00},//
+	{REG_DLY,0x05}, //must delay
 	{0x030f, 0x04},// ; pll2_divsp
 	{0x3501, 0x74},// ; exposure M
 	{0x3502, 0x80},// ; exposure L
@@ -618,6 +621,7 @@ static struct regval_list sensor_6M_regs[] = {
 static struct regval_list sensor_uxga_regs[] = {
 	//@@1632_1224_4Lane_30fps_720Mbps/lane
 	{0x0100, 0x00},//
+	{REG_DLY,0x05}, //must delay
 	{0x030f, 0x09},// ; pll2_divsp
 	{0x3501, 0x4d},// ; exposure M
 	{0x3502, 0x40},// ; exposure L

@@ -59,6 +59,7 @@
 #endif /* CONFIG_ARCH_SUN9I */
 
 #define MAX_TIMEOUT 		16 	/* max 16 seconds */
+#define WATCHDOG_NOWAYOUT   0
 
 static struct platform_device *platform_device;
 static bool is_active, expect_release;
@@ -214,7 +215,7 @@ static int wdt_restart(void)
 	}
 #endif
 
-	pr_info("%s, write reg 0x%08x\n", __func__, (u32)&wdt_reg->ctrl);
+	pr_debug("%s, write reg 0x%08x\n", __func__, (u32)&wdt_reg->ctrl);
 	writel((0xA57 << 1) | (1 << 0), &wdt_reg->ctrl);
 	return 0;
 }
@@ -240,7 +241,7 @@ static int wdt_set_tmout(int timeout_in_sec)
 	writel(temp, &wdt_reg->mode);
 
 	temp2 = interv_to_timeout(interv);
-	pr_info("%s, write 0x%08x to mode reg 0x%08x, actual timeout %d sec\n",
+	pr_debug("%s, write 0x%08x to mode reg 0x%08x, actual timeout %d sec\n",
 		__func__, temp, (u32)&wdt_reg->mode, temp2);
 	return interv;
 }
@@ -262,7 +263,7 @@ static int wdt_enable(bool ben)
 	else
 		temp &= 0xFE;
 	writel(temp, &wdt_reg->mode);
-	pr_info("%s, write reg 0x%08x val 0x%08x\n", __func__, (u32)&wdt_reg->mode, temp);
+	pr_debug("%s, write reg 0x%08x val 0x%08x\n", __func__, (u32)&wdt_reg->mode, temp);
 	return 0;
 }
 

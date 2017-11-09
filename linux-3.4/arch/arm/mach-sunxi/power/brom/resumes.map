@@ -62,21 +62,18 @@ LOAD arch/arm/mach-sunxi/power/brom/resumes.o
 LOAD arch/arm/mach-sunxi/power/brom/resume_head.o
 OUTPUT(arch/arm/mach-sunxi/power/brom/resumes.elf elf32-littlearm)
 
-.debug_info     0x00000000      0x1c2
+.debug_info     0x00000000      0x141
  .debug_info    0x00000000      0x141 arch/arm/mach-sunxi/power/brom/resume_head.o
- .debug_info    0x00000141       0x81 arch/arm/mach-sunxi/power/brom/resumes.o
 
-.debug_abbrev   0x00000000       0x93
+.debug_abbrev   0x00000000       0x7f
  .debug_abbrev  0x00000000       0x7f arch/arm/mach-sunxi/power/brom/resume_head.o
- .debug_abbrev  0x0000007f       0x14 arch/arm/mach-sunxi/power/brom/resumes.o
 
-.debug_line     0x00000000      0x105
+.debug_line     0x00000000       0x7b
  .debug_line    0x00000000       0x7b arch/arm/mach-sunxi/power/brom/resume_head.o
- .debug_line    0x0000007b       0x8a arch/arm/mach-sunxi/power/brom/resumes.o
 
-.debug_str      0x00000000      0x156
- .debug_str     0x00000000      0x156 arch/arm/mach-sunxi/power/brom/resume_head.o
-                                0x16f (size before relaxing)
+.debug_str      0x00000000      0x15a
+ .debug_str     0x00000000      0x15a arch/arm/mach-sunxi/power/brom/resume_head.o
+                                0x173 (size before relaxing)
 
 .comment        0x00000000       0x64
  .comment       0x00000000       0x64 arch/arm/mach-sunxi/power/brom/resume_head.o
@@ -88,12 +85,8 @@ OUTPUT(arch/arm/mach-sunxi/power/brom/resumes.elf elf32-littlearm)
                 0x00000000        0x0 arch/arm/mach-sunxi/power/brom/resume_head.o
 
 .ARM.attributes
-                0x00000000       0x33
+                0x00000000       0x31
  .ARM.attributes
-                0x00000000       0x35 arch/arm/mach-sunxi/power/brom/resume_head.o
+                0x00000000       0x33 arch/arm/mach-sunxi/power/brom/resume_head.o
  .ARM.attributes
-                0x00000035       0x21 arch/arm/mach-sunxi/power/brom/resumes.o
-
-.debug_aranges  0x00000000       0x20
- .debug_aranges
-                0x00000000       0x20 arch/arm/mach-sunxi/power/brom/resumes.o
+                0x00000033       0x21 arch/arm/mach-sunxi/power/brom/resumes.o

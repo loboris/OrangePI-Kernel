@@ -49,7 +49,7 @@ obj-y += sunxi-headsmp.o sunxi-platsmp.o
 obj-$(CONFIG_HOTPLUG_CPU) += sunxi-hotplug.o
 endif
 
-obj-y += sys_config.o sunxi_dump_reg.o sunxi-chip.o sunxi_sram.o sunxi-debug.o
+obj-y += sys_config.o sunxi_dump_reg.o sunxi-chip.o sunxi_sram.o
 
 obj-$(CONFIG_SUNXI_TRUSTZONE) += firmware.o
 obj-$(CONFIG_SUNXI_TRUSTZONE) += sunxi-smc.o

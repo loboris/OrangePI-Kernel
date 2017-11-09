@@ -1,0 +1,46 @@
+v4l2loopback tests
+==================
+
+test
+----
+
+this small sample application will write an image into a v4l2loopback device.
+the image will be 640x480 pixels in UYVY colorspace (and since all pixels are
+set to "0" it will be green).
+the video-device defaults to /dev/video1 but you can specify another device on
+the commandline
+
+USAGE:
+$ make test
+$ ./test /dev/video2 &
+$ xawtv -c /dev/video2
+
+if you want to use another device you need to modify the VIDEO_DEVICE define at
+the beginning of the code and recompile.
+
+
+yuv4mpeg_to_v4l2
+----------------
+Copyright (C) 2011  Eric C. Cooper <ecc@cmu.edu>
+
+Example using mplayer as a producer for the v4l2loopback driver:
+
+$ mkfifo /tmp/pipe
+$ ./yuv4mpeg_to_v4l2 < /tmp/pipe &
+$ mplayer movie.mp4 -vo yuv4mpeg:file=/tmp/pipe
+
+ondemandcam
+-----------
+Copyright 2015, tz@execpc.com, GPLv3.
+This will wait until something connects to pull frames then sends them.
+It uses two threads and semaphores to do the testing.
+It can setup and teardown the frame source.
+The example just sends a different color each second.
+It is 80x60 (it is a skeleton for hardware with this resolution)
+
+$ make ondemandcam
+$ ondemandcam /dev/videoX & # where X is the v4l2loopback device
+
+It can be viewed with:
+
+$ vlc v4l2:///dev/videoX # X is same device as above

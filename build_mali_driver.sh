@@ -33,17 +33,17 @@ export MOD_DIR=${LICHEE_KDIR}/output/lib/modules/${KERNEL_VERSION}
 export KDIR
 
 cd modules/mali
-make ARCH=arm CROSS_COMPILE=${cross_comp}- clean >> ../malibuild.log 2>&1
+make -j $(nproc) ARCH=arm CROSS_COMPILE=${cross_comp}- clean >> ../malibuild.log 2>&1
 if [ $? -ne 0 ]; then
     echo "  Error: clean."
     exit 1
 fi
-make ARCH=arm CROSS_COMPILE=${cross_comp}- build >> ../malibuild.log 2>&1
+make -j $(nproc) ARCH=arm CROSS_COMPILE=${cross_comp}- build >> ../malibuild.log 2>&1
 if [ $? -ne 0 ]; then
     echo "  Error: build."
     exit 1
 fi
-make ARCH=arm CROSS_COMPILE=${cross_comp}- install >> ../malibuild.log 2>&1
+make -j $(nproc) ARCH=arm CROSS_COMPILE=${cross_comp}- install >> ../malibuild.log 2>&1
 if [ $? -ne 0 ]; then
     echo "  Error: install."
     exit 1

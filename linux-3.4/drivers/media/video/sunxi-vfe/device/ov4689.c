@@ -105,7 +105,7 @@ static inline struct sensor_info *to_state(struct v4l2_subdev *sd)
 
 static struct regval_list sensor_default_regs[] = {
 	{0x0103, 0x01},// ; software reset
-	//{REG_DLY,0x05},
+	{REG_DLY,0x05},
 	{0x3638, 0x00},// ; ADC & analog 
 	{0x0300, 0x00},// ; PLL1 prediv 
 	{0x0302, 0x1c},// ; PLL1 divm 
@@ -521,6 +521,40 @@ static int sensor_g_exp(struct v4l2_subdev *sd, __s32 *value)
 	vfe_dev_dbg("sensor_get_exposure = %d\n", info->exp);
 	return 0;
 }
+static int sensor_s_win_off(struct v4l2_subdev *sd, struct sensor_win_off *win_off)
+{
+	int reg_h_off, reg_v_off, hor_total, ver_total,h_star=0,h_end=0,v_star=0,v_end=0;
+	int hor_off_total, ver_off_total;
+	unsigned char val1=0, val2 = 0; 
+	struct sensor_info *info = to_state(sd);
+
+	sensor_read(sd, 0x3800, &val1);
+	sensor_read(sd, 0x3801, &val2);
+	h_star = ((val1&0x1f)<<8)+val2;
+	sensor_read(sd, 0x3804, &val1);
+	sensor_read(sd, 0x3805, &val2);
+	h_end = ((val1&0x1f)<<8)+val2;
+	
+	sensor_read(sd, 0x3802, &val1);
+	sensor_read(sd, 0x3803, &val2);
+	v_star = ((val1&0x1f)<<8)+val2;
+	sensor_read(sd, 0x3806, &val1);
+	sensor_read(sd, 0x3807, &val2);
+	v_end = ((val1&0x1f)<<8)+val2;
+	hor_total = h_end - h_star;
+	ver_total = v_end - v_star;
+
+	hor_off_total = hor_total - info->width;
+	ver_off_total = ver_total - info->height;
+	reg_h_off = CLIP(hor_off_total/2 + win_off->hor_off*hor_off_total/200, 0, 1000);
+	reg_v_off = CLIP(ver_off_total/2 + win_off->ver_off*ver_off_total/200, 0, 1000);
+	//printk("hor_off_total = %d, %d, reg_h_off = %d, %d\n",hor_off_total, ver_off_total,reg_h_off , reg_v_off);
+	sensor_write(sd, 0x3810, (reg_h_off>>8)&0x1f);
+	sensor_write(sd, 0x3811, reg_h_off&0xfe);
+	sensor_write(sd, 0x3812, (reg_v_off>>8)&0x1f);
+	sensor_write(sd, 0x3813, reg_v_off&0xfe);
+	return 0;
+}
 int ov4689_sensor_vts ;
 static int sensor_s_exp_gain(struct v4l2_subdev *sd, struct sensor_exp_gain *exp_gain)
 {
@@ -743,121 +777,85 @@ static int sensor_s_sw_stby(struct v4l2_subdev *sd, int on_off)
  
 static int sensor_power(struct v4l2_subdev *sd, int on)
 {
-  int ret;
-  
-  //insure that clk_disable() and clk_enable() are called in pair 
-  //when calling CSI_SUBDEV_STBY_ON/OFF and CSI_SUBDEV_PWR_ON/OFF
-  ret = 0;
-  switch(on)
-  {
-    case CSI_SUBDEV_STBY_ON:
-      vfe_dev_dbg("CSI_SUBDEV_STBY_ON!\n");
-//      //disable io oe
-//      vfe_dev_print("disalbe oe!\n");
-//      ret = sensor_write_array(sd, sensor_oe_disable_regs, ARRAY_SIZE(sensor_oe_disable_regs));
-//      if(ret < 0)
-//        vfe_dev_err("disalbe oe falied!\n");           
-      //software standby on
-      ret = sensor_s_sw_stby(sd, CSI_STBY_ON);
-      if(ret < 0)
-        vfe_dev_err("soft stby falied!\n");
-      usleep_range(10000,12000);
-      //make sure that no device can access i2c bus during sensor initial or power down
-      //when using i2c_lock_adpater function, the following codes must not access i2c bus before calling i2c_unlock_adapter
-      cci_lock(sd);    
-      //standby on io
-      vfe_gpio_write(sd,PWDN,CSI_STBY_ON);
-      //remember to unlock i2c adapter, so the device can access the i2c bus again
-      cci_unlock(sd);  
-      //inactive mclk after stadby in
-      vfe_set_mclk(sd,OFF);
-      break;
-    case CSI_SUBDEV_STBY_OFF:
-      vfe_dev_dbg("CSI_SUBDEV_STBY_OFF!\n");
-      //make sure that no device can access i2c bus during sensor initial or power down
-      //when using i2c_lock_adpater function, the following codes must not access i2c bus before calling i2c_unlock_adapter
-      cci_lock(sd);    
-    
-      //active mclk before stadby out
-      vfe_set_mclk_freq(sd,MCLK);
-      vfe_set_mclk(sd,ON);
-      usleep_range(10000,12000);
-      //standby off io
-      vfe_gpio_write(sd,PWDN,CSI_STBY_OFF);
-      usleep_range(10000,12000);
-      //remember to unlock i2c adapter, so the device can access the i2c bus again
-      cci_unlock(sd);        
-//      //software standby
-//      ret = sensor_s_sw_stby(sd, CSI_STBY_OFF);
-//      if(ret < 0)
-//        vfe_dev_err("soft stby off falied!\n");
-//      mdelay(10);
-//      vfe_dev_print("enable oe!\n");
-//      ret = sensor_write_array(sd, sensor_oe_enable_regs);
-//      if(ret < 0)
-//        vfe_dev_err("enable oe falied!\n");
-      break;
-    case CSI_SUBDEV_PWR_ON:
-      vfe_dev_dbg("CSI_SUBDEV_PWR_ON!\n");
-      //make sure that no device can access i2c bus during sensor initial or power down
-      //when using i2c_lock_adpater function, the following codes must not access i2c bus before calling i2c_unlock_adapter
-      cci_lock(sd);    
+	int ret = 0;
+	switch(on)
+	{
+		case CSI_SUBDEV_STBY_ON:
+			vfe_dev_dbg("CSI_SUBDEV_STBY_ON!\n");
+			ret = sensor_s_sw_stby(sd, CSI_GPIO_LOW);
+			if(ret < 0)
+				vfe_dev_err("soft stby falied!\n");
+			usleep_range(10000,12000);
+			cci_lock(sd);    
+			vfe_gpio_write(sd,PWDN,CSI_GPIO_LOW);
+			cci_unlock(sd);    
+			vfe_set_mclk(sd,OFF);
+			break;
+		case CSI_SUBDEV_STBY_OFF:
+			vfe_dev_dbg("CSI_SUBDEV_STBY_OFF!\n");
+			cci_lock(sd);    
+			vfe_set_mclk_freq(sd,MCLK);
+			vfe_set_mclk(sd,ON);
+			usleep_range(10000,12000);
+			vfe_gpio_write(sd,PWDN,CSI_GPIO_HIGH);
+			usleep_range(10000,12000);
+			ret = sensor_s_sw_stby(sd, CSI_GPIO_HIGH);
+			if(ret < 0)
+				vfe_dev_err("soft stby off falied!\n");
+			cci_unlock(sd);    
+			break;
+		case CSI_SUBDEV_PWR_ON:
+			vfe_dev_dbg("CSI_SUBDEV_PWR_ON!\n");
+			cci_lock(sd);    
+			vfe_gpio_set_status(sd,PWDN,1);//set the gpio to output
+			vfe_gpio_set_status(sd,RESET,1);//set the gpio to output
+			vfe_gpio_set_status(sd,POWER_EN,1);//set the gpio to output
+			vfe_gpio_write(sd,PWDN,CSI_GPIO_LOW);
+			vfe_gpio_write(sd,RESET,CSI_GPIO_LOW);
+			vfe_set_pmu_channel(sd,IOVDD,ON);
+			usleep_range(10000,12000);
 
-      //power on reset
-      vfe_gpio_set_status(sd,PWDN,1);//set the gpio to output
-      vfe_gpio_set_status(sd,RESET,1);//set the gpio to output
-      //power down io
-      vfe_gpio_write(sd,PWDN,CSI_STBY_ON);
-      //reset on io
-      vfe_gpio_write(sd,RESET,CSI_RST_ON);
-      usleep_range(1000,1200);
-      //active mclk before power on
-      vfe_set_mclk_freq(sd,MCLK);
-      vfe_set_mclk(sd,ON);
-      usleep_range(10000,12000);
-      //power supply
-      vfe_gpio_write(sd,POWER_EN,CSI_PWR_ON);
-      vfe_set_pmu_channel(sd,IOVDD,ON);
-      vfe_set_pmu_channel(sd,AVDD,ON);
-      vfe_set_pmu_channel(sd,DVDD,ON);
-      vfe_set_pmu_channel(sd,AFVDD,ON);
-      //standby off io
-      vfe_gpio_write(sd,PWDN,CSI_STBY_OFF);
-      usleep_range(10000,12000);
-      //reset after power on
-      vfe_gpio_write(sd,RESET,CSI_RST_OFF);
-      usleep_range(30000,31000);
-      //remember to unlock i2c adapter, so the device can access the i2c bus again
-      cci_unlock(sd);  
-      break;
-    case CSI_SUBDEV_PWR_OFF:
-      vfe_dev_dbg("CSI_SUBDEV_PWR_OFF!\n");
-      //make sure that no device can access i2c bus during sensor initial or power down
-      //when using i2c_lock_adpater function, the following codes must not access i2c bus before calling i2c_unlock_adapter
-      cci_lock(sd);    
-      //inactive mclk before power off
-      vfe_set_mclk(sd,OFF);
-      //power supply off
-      vfe_gpio_write(sd,POWER_EN,CSI_PWR_OFF);
-      vfe_set_pmu_channel(sd,AFVDD,OFF);
-      vfe_set_pmu_channel(sd,DVDD,OFF);
-      vfe_set_pmu_channel(sd,AVDD,OFF);
-      vfe_set_pmu_channel(sd,IOVDD,OFF);  
-      //standby and reset io
-      usleep_range(10000,12000);
-      vfe_gpio_write(sd,POWER_EN,CSI_STBY_OFF);
-      vfe_gpio_write(sd,RESET,CSI_RST_ON);
-      //set the io to hi-z
-      vfe_gpio_set_status(sd,RESET,0);//set the gpio to input
-      vfe_gpio_set_status(sd,PWDN,0);//set the gpio to input
-      //remember to unlock i2c adapter, so the device can access the i2c bus again
-      cci_unlock(sd);  
-      break;
-    default:
-      return -EINVAL;
-  }   
+			vfe_set_pmu_channel(sd,AVDD,ON);
+			usleep_range(5000,6000);
+			vfe_gpio_write(sd,POWER_EN,CSI_PWR_ON);
+			vfe_set_pmu_channel(sd,DVDD,ON);
+			vfe_set_pmu_channel(sd,AFVDD,ON);
+			usleep_range(5000,6000);
+			vfe_gpio_write(sd,RESET,CSI_GPIO_HIGH);
+			vfe_gpio_write(sd,PWDN,CSI_GPIO_HIGH);
+			usleep_range(10000,12000);
+			vfe_set_mclk_freq(sd,MCLK);
+			vfe_set_mclk(sd,ON);
+			usleep_range(10000,12000);
+			cci_unlock(sd);    
+			break;
+		case CSI_SUBDEV_PWR_OFF:
+			vfe_dev_dbg("CSI_SUBDEV_PWR_OFF!\n");
+			cci_lock(sd);   
+			vfe_set_mclk(sd,OFF);
+			usleep_range(10000,12000);
+			vfe_gpio_write(sd,RESET,CSI_GPIO_LOW);
+			vfe_gpio_write(sd,PWDN,CSI_GPIO_LOW);
+			usleep_range(10000,12000);
+			vfe_set_pmu_channel(sd,AFVDD,OFF);
+			vfe_set_pmu_channel(sd,DVDD,OFF);
+			vfe_gpio_write(sd,POWER_EN,CSI_PWR_OFF);
+			usleep_range(5000,6000);
+			vfe_set_pmu_channel(sd,AVDD,OFF);
 
-  return 0;
+			usleep_range(5000,6000);
+			vfe_set_pmu_channel(sd,IOVDD,OFF);  
+			usleep_range(10000,12000);
+			vfe_gpio_set_status(sd,RESET,0);//set the gpio to input
+			vfe_gpio_set_status(sd,PWDN,0);//set the gpio to input
+			vfe_gpio_set_status(sd,POWER_EN,0);//set the gpio to input
+			cci_unlock(sd);    
+			break;
+		default:
+			return -EINVAL;
+	}   
+
+	return 0;
 }
  
 static int sensor_reset(struct v4l2_subdev *sd, u32 val)
@@ -972,6 +970,9 @@ static long sensor_ioctl(struct v4l2_subdev *sd, unsigned int cmd, void *arg)
     case ISP_SET_EXP_GAIN:
 		ret = sensor_s_exp_gain(sd, (struct sensor_exp_gain *)arg);
       break;
+    case ISP_SET_WIN_OFF:
+		ret = sensor_s_win_off(sd, (struct sensor_win_off *)arg);
+      break;
     default:
       return -EINVAL;
   }
@@ -1028,7 +1029,27 @@ static struct sensor_win_size sensor_win_sizes[] = {
 		.regs_size  = ARRAY_SIZE(sensor_quxga_regs),
 		.set_size   = NULL,
 	},
-		/* 2688*1520 */
+	/* 2048*1520 for 4:3 capture */
+	{
+		.width		= 2048,
+		.height 	= 1520,
+		.hoffset	= 320,
+		.voffset	= 0,
+		.hts		= 2576,
+		.vts		= 1554,//2480,
+		.pclk		= 120*1000*1000,
+		.mipi_bps	= 720*1000*1000,
+		.fps_fixed	= 2,
+		.bin_factor = 1,
+		.intg_min	= 16,
+		.intg_max	= (1554-4)<<4,
+		.gain_min	= 1<<4,
+		.gain_max	= (12<<4)-1,
+		.regs		= sensor_quxga_regs,
+		.regs_size	= ARRAY_SIZE(sensor_quxga_regs),
+		.set_size	= NULL,
+	},
+		/* 2304*1296 */
 	{
 		.width      = 2304,//QUXGA_WIDTH,//3280,
 		.height     = 1296,//QUXGA_HEIGHT,//2464,

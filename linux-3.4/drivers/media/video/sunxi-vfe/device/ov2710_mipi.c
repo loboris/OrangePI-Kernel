@@ -1046,6 +1046,8 @@ static int sensor_s_fmt(struct v4l2_subdev *sd,
 	info->fmt = sensor_fmt;
 	info->width = wsize->width;
 	info->height = wsize->height;
+	info->exp = 0;
+	info->gain = 0;
 	ov2710_sensor_vts = wsize->vts;  
    
 	vfe_dev_print("s_fmt set width = %d, height = %d\n",wsize->width,wsize->height);

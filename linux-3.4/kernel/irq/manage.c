@@ -201,6 +201,9 @@ int irq_set_affinity_hint(unsigned int irq, const struct cpumask *m)
 		return -EINVAL;
 	desc->affinity_hint = m;
 	irq_put_desc_unlock(desc, flags);
+    /* set the initial affinity to prevent every interrupt being on CPU0 */
+    irq_set_affinity(irq, m);
+
 	return 0;
 }
 EXPORT_SYMBOL_GPL(irq_set_affinity_hint);

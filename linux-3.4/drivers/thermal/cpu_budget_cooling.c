@@ -30,6 +30,7 @@
 #include <linux/cpu.h>
 #include <linux/cpumask.h>
 #include <linux/cpu_budget_cooling.h>
+#include <mach/sys_config.h>
 #include "thermal_core.h"
 
 #define CREATE_TRACE_POINTS
@@ -59,6 +60,7 @@ static LIST_HEAD(cooling_cpufreq_list);
 static DEFINE_IDR(cpu_budget_idr);
 static DEFINE_MUTEX(cooling_cpu_budget_lock);
 static unsigned int cpu_budget_dev_count;
+static int corekeeper_enabled;
 static struct cpu_budget_cooling_device* notify_device=NULL;
 /**
  * get_idr - function to get a unique id.
@@ -108,12 +110,28 @@ static int is_cpufreq_valid(int cpu)
 	struct cpufreq_policy policy;
 	return !cpufreq_get_policy(&policy, cpu);
 }
+#ifdef CONFIG_HOTPLUG_CPU
 static int get_any_online_cpu(const cpumask_t *mask)
 {
 	int cpu,lastcpu=0xffff;
 
 	for_each_cpu(cpu, mask) {
 		if ((cpu != BOOT_CPU) && cpu_online(cpu))
+        {
+            if(lastcpu == 0xffff)
+                lastcpu = cpu;
+            else if(cpu >lastcpu)
+                lastcpu = cpu;
+        }
+	}
+	return lastcpu;
+}
+static int get_any_offline_cpu(const cpumask_t *mask)
+{
+	int cpu,lastcpu=0xffff;
+
+	for_each_cpu(cpu, mask) {
+		if (!cpu_online(cpu))
         {
             if(lastcpu == 0xffff)
                 lastcpu = cpu;
@@ -133,6 +151,7 @@ static int get_online_cpu(const cpumask_t *mask)
 	}
 	return num;
 }
+#endif
 static BLOCKING_NOTIFIER_HEAD(budget_cooling_notifier_list);
 int register_budget_cooling_notifier(struct notifier_block *nb)
 {
@@ -149,18 +168,25 @@ EXPORT_SYMBOL(register_budget_cooling_notifier);
 #ifdef CONFIG_CPU_FREQ_GOV_AUTO_HOTPLUG_ROOMAGE
 extern int autohotplug_update_room(unsigned int c0min,unsigned int c1min,unsigned int c0max,unsigned int c1max);
 #endif
+static int old_cooling_state = 0;
 int cpu_budget_update_state(struct cpu_budget_cooling_device *cpu_budget_device)
 {
-    int i,ret = 0;
+	int ret = 0;
 	unsigned int cpuid;
-    unsigned int c0_online=0,c1_online=0;
-    unsigned int c0_takedown=0,c1_takedown=0;
-    unsigned int c0_max,c1_max,c0_min,c1_min;
+#ifdef CONFIG_HOTPLUG_CPU
+	int i = 0;
+	unsigned int c0_online=0,c1_online=0;
+	unsigned int c0_takedown=0,c1_takedown=0;
+	unsigned int c0_max,c1_max,c0_min,c1_min;
+	unsigned int c0_bringup=0,c1_bringup=0;
+#endif
 	struct cpumask *cluster0_cpus = &cpu_budget_device->cluster0_cpus;
 	struct cpumask *cluster1_cpus = &cpu_budget_device->cluster1_cpus;
 	struct cpufreq_policy policy;
+	int cooling_state = cpu_budget_device->cpu_budget_state;
 
     ret = 0;
+#ifdef CONFIG_HOTPLUG_CPU
 // update cpu limit
     for_each_online_cpu(i) {
         if (cpumask_test_cpu(i, &cpu_budget_device->cluster0_cpus))
@@ -179,6 +205,22 @@ int cpu_budget_update_state(struct cpu_budget_cooling_device *cpu_budget_device)
              c0_max:cpu_budget_device->cluster0_num_floor;
     c0_takedown = (c0_online > c0_max)?(c0_online - c0_max):0;
     c1_takedown = (c1_online > c1_max)?(c1_online - c1_max):0;
+#ifdef CONFIG_ARCH_SUN8IW7
+	if (corekeeper_enabled && (cooling_state < old_cooling_state) && (c0_takedown + c1_takedown == 0))
+	{
+		/* pr_info("CPU Budget:plugging cores, old state %d, new state %d\n",old_cooling_state,cooling_state); */
+		switch (cooling_state)
+		{
+		case 2:
+		case 1:
+		case 0:
+			c0_bringup = (c0_online < c0_max) ? c0_max - c0_online : 0;
+			c1_bringup = (c1_online < c1_max) ? c1_max - c1_online : 0;
+			break;
+		}
+	}
+	old_cooling_state = cooling_state;
+#endif
     while(c1_takedown)
     {
 		cpuid = get_any_online_cpu(&cpu_budget_device->cluster1_cpus);
@@ -203,6 +245,27 @@ int cpu_budget_update_state(struct cpu_budget_cooling_device *cpu_budget_device)
         }
         c0_takedown--;
     }
+    while(c0_bringup)
+    {
+		cpuid = get_any_offline_cpu(&cpu_budget_device->cluster0_cpus);
+		if (cpuid < nr_cpu_ids)
+        {
+			pr_info("CPU Budget:Try to up cpu %d, cluster0 online %d, limit %d\n",cpuid,c0_online,cpu_budget_device->cluster0_num_limit);
+			ret = work_on_cpu(BOOT_CPU,(long(*)(void *))cpu_up,(void *)cpuid);
+        }
+        c0_bringup--;
+    }
+    while(c1_bringup)
+    {
+		cpuid = get_any_offline_cpu(&cpu_budget_device->cluster1_cpus);
+		if (cpuid < nr_cpu_ids)
+        {
+			pr_info("CPU Budget:Try to up cpu %d, cluster1 online %d, limit %d\n",cpuid,c1_online,cpu_budget_device->cluster1_num_limit);
+			ret = work_on_cpu(BOOT_CPU,(long(*)(void *))cpu_up,(void *)cpuid);
+        }
+        c1_bringup--;
+    }
+#endif
 #ifdef CONFIG_CPU_FREQ_GOV_AUTO_HOTPLUG_ROOMAGE
     autohotplug_update_room(c0_min,c1_min,c0_max,c1_max);
 #endif
@@ -279,7 +342,7 @@ static int cpu_budget_apply_cooling(struct cpu_budget_cooling_device *cpu_budget
         if(instance->tz->temperature > temperature)
             temperature = instance->tz->temperature;
     }
-    pr_info("CPU Budget: Temperature: %u Limit state:%lu item[%d,%d,%d,%d %d]\n",temperature,cooling_state,
+    pr_debug("CPU Budget: Temperature: %u Limit state:%lu item[%d,%d,%d,%d %d]\n",temperature,cooling_state,
     cpu_budget_device->cluster0_freq_limit,
     cpu_budget_device->cluster0_num_limit ,
     cpu_budget_device->cluster1_freq_limit ,
@@ -288,6 +351,7 @@ static int cpu_budget_apply_cooling(struct cpu_budget_cooling_device *cpu_budget
 
     return cpu_budget_update_state(cpu_budget_device);
 }
+#ifdef CONFIG_HOTPLUG_CPU
 static int hotplug_thermal_notifier(struct notifier_block *nfb,
 					unsigned long action, void *hcpu)
 {
@@ -335,6 +399,7 @@ static int hotplug_thermal_notifier(struct notifier_block *nfb,
 
 	return NOTIFY_DONE;
 }
+#endif
 /**
  * cpufreq_thermal_notifier - notifier callback for cpufreq policy change.
  * @nb:	struct notifier_block * with callback info.
@@ -381,7 +446,7 @@ static int cpufreq_thermal_notifier(struct notifier_block *nb,
         {
             cpufreq_verify_within_limits(policy, min_freq, max_freq);
 			policy->user_policy.max = policy->max;
-            pr_info("CPU Budget:update CPU %d cpufreq max to %lu min to %lu\n",policy->cpu,max_freq, min_freq);
+            pr_debug("CPU Budget:update CPU %d cpufreq max to %lu min to %lu\n",policy->cpu,max_freq, min_freq);
         }
     }
 	return 0;
@@ -450,6 +515,17 @@ struct thermal_cooling_device *cpu_budget_cooling_register(
 	char dev_name[THERMAL_NAME_LENGTH];
 	int ret = 0, i;
 	struct cpufreq_policy policy;
+
+	/* get corekeeper state */
+    script_item_u val;
+    script_item_value_type_e type;
+
+    type = script_get_item("corekeeper", "corekeeper_enabled", &val);
+    if (SCIRPT_ITEM_VALUE_TYPE_INT == type) {
+        corekeeper_enabled = !!val.val;
+        if (corekeeper_enabled)
+            pr_info("CPU Budget:corekeeper enabled\n");
+    }
 
 	/*Verify that all the clip cpus have same freq_min, freq_max limit*/
 	for_each_cpu(i, cluster0_cpus) {
@@ -526,9 +602,10 @@ struct thermal_cooling_device *cpu_budget_cooling_register(
         cpu_budget_dev->cpufreq_notifer.notifier_call=cpufreq_thermal_notifier;
 		cpufreq_register_notifier(&(cpu_budget_dev->cpufreq_notifer),
 						CPUFREQ_POLICY_NOTIFIER);
-
+#ifdef CONFIG_HOTPLUG_CPU
         cpu_budget_dev->hotplug_notifer.notifier_call=hotplug_thermal_notifier;
 		register_cpu_notifier(&(cpu_budget_dev->hotplug_notifer));
+#endif
     }
 	cpu_budget_dev_count++;
 	mutex_unlock(&cooling_cpu_budget_lock);
@@ -553,7 +630,9 @@ void cpu_budget_cooling_unregister(struct thermal_cooling_device *cdev)
 
 		cpufreq_unregister_notifier(&(cpu_budget_dev->cpufreq_notifer),
 						CPUFREQ_POLICY_NOTIFIER);
+#ifdef CONFIG_HOTPLUG_CPU
 		unregister_cpu_notifier(&(cpu_budget_dev->hotplug_notifer));
+#endif
 	}
 	mutex_unlock(&cooling_cpu_budget_lock);
 
@@ -563,4 +642,3 @@ void cpu_budget_cooling_unregister(struct thermal_cooling_device *cdev)
     pr_info("CPU Budget:unregister Success\n");
 }
 EXPORT_SYMBOL(cpu_budget_cooling_unregister);
-

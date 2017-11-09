@@ -91,7 +91,7 @@ int vfe_set_mclk(struct v4l2_subdev *sd, enum on_off on_off)
 	struct vfe_dev *dev=(struct vfe_dev *)dev_get_drvdata(sd->v4l2_dev->dev);
 	switch(on_off) {
 	case ON:
-		vfe_print("mclk on\n");
+		vfe_dbg(0,"mclk on\n");
 		os_gpio_set(&dev->gpio->mclk, 1);  //set mclk PIN to MCLKt.
 		usleep_range(10000,12000);
 		if(dev->clock.vfe_master_clk) {
@@ -105,7 +105,7 @@ int vfe_set_mclk(struct v4l2_subdev *sd, enum on_off on_off)
 		}
 		break;
 	case OFF:
-		vfe_print("mclk off\n");
+		vfe_dbg(0,"mclk off\n");
 		if(dev->clock.vfe_master_clk) {
 			os_clk_disable_unprepare(dev->clock.vfe_master_clk);
 		} else {

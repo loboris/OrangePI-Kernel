@@ -295,5 +295,6 @@ source "drivers/net/wireless/zd1211rw/Kconfig"
 source "drivers/net/wireless/mwifiex/Kconfig"
 source "drivers/net/wireless/rtl8188eu/Kconfig"
 source "drivers/net/wireless/rtl8189es/Kconfig"
+source "drivers/net/wireless/rtl8189fs/Kconfig"
 source "drivers/net/wireless/rtl8723bs/Kconfig"
 endif # WLAN

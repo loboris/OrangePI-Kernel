@@ -1008,138 +1008,147 @@ static int sensor_g_gain(struct v4l2_subdev *sd, __s32 *value)
 
 static int sensor_s_gain(struct v4l2_subdev *sd, int gain_val)
 {
-	struct sensor_info *info = to_state(sd);
-	unsigned short tmp_gain = 0;
-	 //gain_val = gain_val >> 4;
-	 if (gain_val < 16)
-	 	gain_val = 16;
-	 //if(info->gain == gain_val)
-	 
-	   if (16<= gain_val*100 && gain_val*100 < (103*16) )
-	      sensor_write(sd,0x3060,0x0000);
-	   else if ((103*16) <= gain_val*100 && gain_val*100 < (107*16))
-	      sensor_write(sd,0x3060,0x0001);
-	   else if ((107*16) <= gain_val*100 && gain_val*100 < (110*16))
-	      sensor_write(sd,0x3060,0x0002);
-	   else if ((110*16) <= gain_val*100 && gain_val*100 < (114*16))
-	      sensor_write(sd,0x3060,0x0003);
-	   else if ((114*16) <= gain_val*100 && gain_val*100 < (119*16))
-	      sensor_write(sd,0x3060,0x0004);
-	   else if ((119*16) <= gain_val*100 && gain_val*100 < (123*16))
-	      sensor_write(sd,0x3060,0x0005);
-	   else if ((123*16) <= gain_val*100 && gain_val*100 < (128*16))
-	      sensor_write(sd,0x3060,0x0006);
-	   else if ((128*16) <= gain_val*100 && gain_val*100 < (133*16))
-	      sensor_write(sd,0x3060,0x0007);
-	   else if ((133*16) <= gain_val*100 && gain_val*100 < (139*16))
-	      sensor_write(sd,0x3060,0x0008);
-	   else if ((139*16) <= gain_val*100 && gain_val*100 < (145*16))
-	      sensor_write(sd,0x3060,0x0009);
-	   else if ((145*16) <= gain_val*100 && gain_val*100 < (152*16))
-	      sensor_write(sd,0x3060,0x000a);
-	   else if ((152*16) <= gain_val*100 && gain_val*100 < (160*16))
-	      sensor_write(sd,0x3060,0x000b);
-	   else if ((160*16) <= gain_val*100 && gain_val*100 < (168*16))
-	      sensor_write(sd,0x3060,0x000c);
-	   else if ((168*16) <= gain_val*100 && gain_val*100 < (178*16))
-	      sensor_write(sd,0x3060,0x000d);
-	   else if ((178*16) <= gain_val*100 && gain_val*100 < (188*16))
-	      sensor_write(sd,0x3060,0x000e);
-	   else if ((188*16) <= gain_val*100 && gain_val*100 < (200*16))
-	      sensor_write(sd,0x3060,0x000f);
-	   else if (200*16 <= gain_val*100 && gain_val*100 < (213*16))
-	      sensor_write(sd,0x3060,0x0010);
-	   else if ((213*16) <= gain_val*100 && gain_val*100 < (229*16))
-	      sensor_write(sd,0x3060,0x0012);
-	   else if ((229*16) <= gain_val*100 && gain_val*100 < (246*16))
-	      sensor_write(sd,0x3060,0x0014);
-	   else if ((246*16) <= gain_val*100 && gain_val*100 < (267*16))
-	      sensor_write(sd,0x3060,0x0016);
-	   else if ((267*16) <= gain_val*100 && gain_val*100 < (291*16))
-	      sensor_write(sd,0x3060,0x0018);
-	   else if ((291*16) <= gain_val*100 && gain_val*100 < (320*16))
-	      sensor_write(sd,0x3060,0x001a);
-	   /*
-	   else if ((320*16) <= gain_val*100 && gain_val*100 < (356*16))
-	      sensor_write(sd,0x3060,0x001c);
-	   else if ((356*16) <= gain_val*100 && gain_val*100 < (400*16))
-	      sensor_write(sd,0x3060,0x001e);
-	   else if ((400*16) <= gain_val*100 && gain_val*100 < (457*16))
-	      sensor_write(sd,0x3060,0x0020);
-	   else if ((457*16) <= gain_val*100 && gain_val*100 < (533*16))
-	      sensor_write(sd,0x3060,0x0024);
-	   else if ((533*16) <= gain_val*100 && gain_val*100 < (640*16))
-	      sensor_write(sd,0x3060,0x0028);
-	   else if ((640*16) <= gain_val*100 && gain_val*100 < (800*16))
-	      sensor_write(sd,0x3060,0x002c);
-	   else if ((800*16) >= gain_val*100 )
-	      sensor_write(sd,0x3060,0x0030);
-	   	   if((1*16 <= gain_val) && (gain_val< 2*16))
-	   	sensor_write(sd,0x305e,0x0085);
-	   else if ((2*16 <= gain_val) && (gain_val < 4*16))
-	   		sensor_write(sd,0x305e,0x0088);
-	   else if ((4*16 <= gain_val)&&(gain_val < 8*16))
-	   		sensor_write(sd,0x305e,0x0092);
-	   else if (8*16 <= gain_val)
-	   		sensor_write(sd,0x305e,0x00a0);
-   		*/
-	   else if ((320*16) <= gain_val*100 && gain_val*100 < (800*16))
-		{
-			tmp_gain = (2449700 + gain_val*564520 - gain_val*gain_val*1646)/1000000;
-			sensor_write(sd,0x3060,tmp_gain);
-		}
-	   else if ((800*16) <= gain_val*100 )
-	      sensor_write(sd,0x3060,0x0030);
+    struct sensor_info *info = to_state(sd);
+	unsigned short dig_gain = 0x80;	// 1 times digital gain
 
-	   //Digit Gain
-		if((1*16 <= gain_val) && (gain_val<= 8*16))
-			sensor_write(sd,0x305e, 128);
-		else if ((8*16 < gain_val) && (gain_val <= 10*16))
-			sensor_write(sd,0x305e, gain_val);
-	   		
-	   	  sensor_read(sd,0x3060,&tmp_gain);
-		  
-	   //  sensor_write(sd,0x3060,0x0030);
-	   //printk("sensor_set_gain = %d,readout gain =0x%x\n", gain_val,tmp_gain);
-      info->gain = gain_val;
-	  return 0;
+    if (gain_val < 16)
+        gain_val = 16;
+
+    if (16<= gain_val*100 && gain_val*100 < (103*16) )
+        sensor_write(sd,0x3060,0x0000);
+    else if ((103*16) <= gain_val*100 && gain_val*100 < (107*16))
+        sensor_write(sd,0x3060,0x0001);
+    else if ((107*16) <= gain_val*100 && gain_val*100 < (110*16))
+        sensor_write(sd,0x3060,0x0002);
+    else if ((110*16) <= gain_val*100 && gain_val*100 < (114*16))
+        sensor_write(sd,0x3060,0x0003);
+    else if ((114*16) <= gain_val*100 && gain_val*100 < (119*16))
+        sensor_write(sd,0x3060,0x0004);
+    else if ((119*16) <= gain_val*100 && gain_val*100 < (123*16))
+        sensor_write(sd,0x3060,0x0005);
+    else if ((123*16) <= gain_val*100 && gain_val*100 < (128*16))
+        sensor_write(sd,0x3060,0x0006);
+    else if ((128*16) <= gain_val*100 && gain_val*100 < (133*16))
+        sensor_write(sd,0x3060,0x0007);
+    else if ((133*16) <= gain_val*100 && gain_val*100 < (139*16))
+        sensor_write(sd,0x3060,0x0008);
+    else if ((139*16) <= gain_val*100 && gain_val*100 < (145*16))
+        sensor_write(sd,0x3060,0x0009);
+    else if ((145*16) <= gain_val*100 && gain_val*100 < (152*16))
+        sensor_write(sd,0x3060,0x000a);
+    else if ((152*16) <= gain_val*100 && gain_val*100 < (160*16))
+        sensor_write(sd,0x3060,0x000b);
+    else if ((160*16) <= gain_val*100 && gain_val*100 < (168*16))
+        sensor_write(sd,0x3060,0x000c);
+    else if ((168*16) <= gain_val*100 && gain_val*100 < (178*16))
+        sensor_write(sd,0x3060,0x000d);
+    else if ((178*16) <= gain_val*100 && gain_val*100 < (188*16))
+        sensor_write(sd,0x3060,0x000e);
+    else if ((188*16) <= gain_val*100 && gain_val*100 < (200*16))
+        sensor_write(sd,0x3060,0x000f);
+    else if ((200*16) <= gain_val*100 && gain_val*100 < (213*16))
+	{
+        sensor_write(sd,0x3060,0x0010);
+		dig_gain = gain_val*12800/(200*16);
+	}
+    else if ((213*16) <= gain_val*100 && gain_val*100 < (229*16))
+    {
+        sensor_write(sd,0x3060,0x0012);
+		dig_gain = gain_val*12800/(213*16);
+    }
+    else if ((229*16) <= gain_val*100 && gain_val*100 < (246*16))
+    {
+        sensor_write(sd,0x3060,0x0014);
+		dig_gain = gain_val*12800/(229*16);
+    }
+    else if ((246*16) <= gain_val*100 && gain_val*100 < (267*16))
+	{
+		sensor_write(sd,0x3060,0x0016);
+		dig_gain = gain_val*12800/(246*16);
+	}
+    else if ((267*16) <= gain_val*100 && gain_val*100 < (291*16))
+	{
+		sensor_write(sd,0x3060,0x0018);
+		dig_gain = gain_val*12800/(267*16);
+	}
+    else if ((291*16) <= gain_val*100 && gain_val*100 < (320*16))
+	{
+		sensor_write(sd,0x3060,0x001a);
+		dig_gain = gain_val*12800/(291*16);
+	}
+    else if ((320*16) <= gain_val*100 && gain_val*100 < (356*16))
+	{
+		sensor_write(sd,0x3060,0x001c);
+		dig_gain = gain_val*12800/(320*16);
+	}
+    else if ((356*16) <= gain_val*100 && gain_val*100 < (400*16))
+	{
+		sensor_write(sd,0x3060,0x001e);
+		dig_gain = gain_val*12800/(356*16);
+	}
+    else if ((400*16) <= gain_val*100 && gain_val*100 < (457*16))
+	{
+		sensor_write(sd,0x3060,0x0020);
+		dig_gain = gain_val*12800/(400*16);
+	}
+    else if ((457*16) <= gain_val*100 && gain_val*100 < (533*16))
+	{
+		sensor_write(sd,0x3060,0x0024);
+		dig_gain = gain_val*12800/(457*16);
+	}
+    else if ((533*16) <= gain_val*100 && gain_val*100 < (640*16))
+	{
+		sensor_write(sd,0x3060,0x0028);
+		dig_gain = gain_val*12800/(533*16);
+	}
+    else if ((640*16) <= gain_val*100 && gain_val*100 < (800*16))
+	{
+		sensor_write(sd,0x3060,0x002c);
+		dig_gain = gain_val*12800/(640*16);
+	}
+    else if ((800*16) <= gain_val*100 )
+	{
+		sensor_write(sd,0x3060,0x0030);
+		dig_gain = gain_val*12800/(800*16);
+	}
+
+	sensor_write(sd, 0x305e, dig_gain);
+    
+    //sensor_read(sd,0x3060,&tmp_gain);
+    //printk("sensor_set_gain = %d,readout gain =0x%x\n", gain_val,tmp_gain);
+    info->gain = gain_val;
+    return 0;
 }
 
 static int ar0330_sensor_vts;
-
 static int sensor_s_exp_gain(struct v4l2_subdev *sd, struct sensor_exp_gain *exp_gain)
 {
-  int exp_val, gain_val,shutter,frame_length;  
-//  unsigned char explow=0,expmid=0,exphigh=0,vts_diff_low,vts_diff_high;
-//  unsigned char gainlow=0,gainhigh=0;  
-  struct sensor_info *info = to_state(sd);
+    int exp_val, gain_val,shutter,frame_length;  
+    //  unsigned char explow=0,expmid=0,exphigh=0,vts_diff_low,vts_diff_high;
+    //  unsigned char gainlow=0,gainhigh=0;  
+    struct sensor_info *info = to_state(sd);
+    exp_val = exp_gain->exp_val;
+    gain_val = exp_gain->gain_val;
+    if(gain_val<1*16)
+        gain_val=16;
+    if(gain_val>64*16-1)
+        gain_val=64*16-1;
+    if(exp_val>0xfffff)
+        exp_val=0xfffff;
 
-  exp_val = exp_gain->exp_val;
-  gain_val = exp_gain->gain_val;
+    shutter = exp_val/16;
+    if(shutter > ar0330_sensor_vts - 4)
+    	frame_length = shutter + 4;
+    else
+    	frame_length = ar0330_sensor_vts;
 
-  //if((info->exp == exp_val)&&(info->gain == gain_val))
-  //	return 0;
-  if(gain_val<1*16)
-	  gain_val=16;
-  if(gain_val>64*16-1)
-	  gain_val=64*16-1;
-  if(exp_val>0xfffff)
-	  exp_val=0xfffff;
-  
-  shutter = exp_val/16;
-  if(shutter  > ar0330_sensor_vts- 4)
-		frame_length = shutter + 4;
-  else
-		frame_length = ar0330_sensor_vts;
-  
-  printk("norm exp_val = %d,gain_val = %d\n",exp_val,gain_val);
-  
-  sensor_write(sd, 0x300A,frame_length);//coarse integration time
-  sensor_s_exp(sd,exp_val);
-  sensor_s_gain(sd,gain_val);
-  info->exp = exp_val;
-  info->gain = gain_val;
-  return 0;
+//    printk("norm exp_val = %d,gain_val = %d\n",exp_val,gain_val);
+	sensor_write(sd, 0x300A,frame_length);//coarse integration time
+    sensor_s_exp(sd,exp_val);
+    sensor_s_gain(sd,gain_val);
+    info->exp = exp_val;
+    info->gain = gain_val;
+    return 0;
 }
 static int sensor_s_sw_stby(struct v4l2_subdev *sd, int on_off)
 {
@@ -1176,138 +1185,104 @@ static int sensor_set_pll_enable(struct v4l2_subdev *sd, int on_off)
  
 static int sensor_power(struct v4l2_subdev *sd, int on)
 {
-  int ret;
-  
-  //insure that clk_disable() and clk_enable() are called in pair 
-  //when calling CSI_SUBDEV_STBY_ON/OFF and CSI_SUBDEV_PWR_ON/OFF
-  ret = 0;
-  switch(on)
-  {
-    case CSI_SUBDEV_STBY_ON:
-      vfe_dev_dbg("CSI_SUBDEV_STBY_ON!\n");
-      //software standby on
-     ret = sensor_s_sw_stby(sd, CSI_STBY_ON);
-      if(ret < 0)
-        vfe_dev_err("soft stby falied!\n");
-      usleep_range(1000,1200);
-      //make sure that no device can access i2c bus during sensor initial or power down
-      //when using i2c_lock_adpater function, the following codes must not access i2c bus before calling i2c_unlock_adapter
-      cci_lock(sd);
-      //standby on io
-     // vfe_gpio_write(sd,PWDN,CSI_STBY_ON);
-	  
-      vfe_set_mclk(sd,OFF);
-	//  printk("ar0330 standby on!!");
-	        
-      //remember to unlock i2c adapter, so the device can access the i2c bus again
-      cci_unlock(sd);  
-      break;
-	  
-    case CSI_SUBDEV_STBY_OFF:
-      vfe_dev_dbg("CSI_SUBDEV_STBY_OFF!\n");
-      //make sure that no device can access i2c bus during sensor initial or power down
-      //when using i2c_lock_adpater function, the following codes must not access i2c bus before calling i2c_unlock_adapter
-      cci_lock(sd);    
-      //active mclk before stadby out
-      vfe_set_mclk_freq(sd,MCLK);
-      vfe_set_mclk(sd,ON);
-	  printk("ar0330 standby off!!");
-       usleep_range(1000,1200);
-      //standby off io
-     // vfe_gpio_write(sd,PWDN,CSI_STBY_OFF);
-     // usleep_range(100000,120000);
-      //remember to unlock i2c adapter, so the device can access the i2c bus again
-      cci_unlock(sd);        
-      //software standby
-      ret = sensor_s_sw_stby(sd, CSI_STBY_OFF);
-      if(ret < 0)
-       vfe_dev_err("soft stby off falied!\n");
-       usleep_range(1000,1200);
-     // vfe_dev_print("enable oe!\n");
-   //   ret = sensor_write_array(sd, sensor_oe_enable_regs,  ARRAY_SIZE(sensor_oe_enable_regs));
-  //    if(ret < 0)
-    //    vfe_dev_err("enable oe falied!\n");
-      break;
-   
-    case CSI_SUBDEV_PWR_ON:
-      vfe_dev_dbg("CSI_SUBDEV_PWR_ON!\n");
-      //make sure that no device can access i2c bus during sensor initial or power down
-      //when using i2c_lock_adpater function, the following codes must not access i2c bus before calling i2c_unlock_adapter
-      cci_lock(sd);
-      //power on reset
-     // vfe_gpio_set_status(sd,PWDN,1);//set the gpio to output
-      vfe_gpio_set_status(sd,RESET,1);//set the gpio to output
-      
-      vfe_gpio_write(sd,RESET,CSI_RST_OFF);  
-      //vfe_gpio_write(sd,PWDN,CSI_STBY_ON);
-       //usleep_range(10000,12000);
-      //power supply
-      //vfe_gpio_write(sd,POWER_EN,CSI_PWR_ON);
-     // vfe_set_pmu_channel(sd,PLLVDD,ON);
-      vfe_set_pmu_channel(sd,AVDD,ON);	
-      vfe_set_pmu_channel(sd,DVDD,ON);
-      vfe_set_pmu_channel(sd,IOVDD,ON);
-     // vfe_set_pmu_channel(sd,AFVDD,ON);
-     // vfe_gpio_write(sd,PWDN,CSI_STBY_OFF); 
-     // vfe_gpio_write(sd,RESET,CSI_RST_OFF);
-       //usleep_range(100000,120000);
-      vfe_set_mclk_freq(sd,MCLK);
-      vfe_set_mclk(sd,ON);
-      //reset on io
-      vfe_gpio_write(sd,RESET,CSI_RST_ON);
-        usleep_range(2000,2200);
-      vfe_gpio_write(sd,RESET,CSI_RST_OFF);
-	    usleep_range(6000,7000);
-		  
-      //active mclk before power on
+	int ret;
+	ret = 0;
+	switch(on)
+	{
+		case CSI_SUBDEV_STBY_ON:
+			vfe_dev_dbg("CSI_SUBDEV_STBY_ON!\n");
+			//software standby on
+			ret = sensor_s_sw_stby(sd, CSI_GPIO_HIGH);
+			if(ret < 0)
+				vfe_dev_err("soft stby falied!\n");
+			usleep_range(10000,12000);
+			cci_lock(sd);
+			vfe_gpio_write(sd,PWDN,CSI_GPIO_HIGH);
+			cci_unlock(sd);
+			vfe_set_mclk(sd,OFF);
+			break;
+		case CSI_SUBDEV_STBY_OFF:
+			vfe_dev_dbg("CSI_SUBDEV_STBY_OFF!\n");
+			cci_lock(sd);
+			vfe_set_mclk_freq(sd,MCLK);
+			vfe_set_mclk(sd,ON);
+			usleep_range(10000,12000);
+			vfe_gpio_write(sd,PWDN,CSI_GPIO_LOW);
+			usleep_range(10000,12000);
+			ret = sensor_s_sw_stby(sd, CSI_GPIO_LOW);
+			if(ret < 0)
+				vfe_dev_err("soft stby off falied!\n");
+			cci_unlock(sd);
+			break;
+		case CSI_SUBDEV_PWR_ON:
+			vfe_dev_dbg("CSI_SUBDEV_PWR_ON!\n");
+			cci_lock(sd);
+			//power on reset
+			vfe_gpio_set_status(sd,PWDN,1);//set the gpio to output
+			vfe_gpio_set_status(sd,RESET,1);//set the gpio to output
+			vfe_gpio_set_status(sd,POWER_EN,1);//set the gpio to output 
+			
+			vfe_gpio_write(sd,RESET,CSI_GPIO_HIGH);  
+			vfe_gpio_write(sd,PWDN,CSI_GPIO_HIGH);
+			vfe_gpio_write(sd,POWER_EN,CSI_GPIO_LOW);
+			usleep_range(1000,1200);
+			//power supply
+			vfe_set_pmu_channel(sd,AVDD,ON);	
+			vfe_gpio_write(sd,POWER_EN,CSI_GPIO_HIGH);
+			vfe_set_pmu_channel(sd,DVDD,ON);
+			vfe_set_pmu_channel(sd,AFVDD,ON);
+			usleep_range(1000,1200);
+			vfe_set_pmu_channel(sd,IOVDD,ON);
+			//active mclk before power on
+			vfe_set_mclk_freq(sd,MCLK);
+			vfe_set_mclk(sd,ON);
+			usleep_range(10000,12000);
 
-/*
-      //standby off io
-      vfe_gpio_write(sd,PWDN,CSI_STBY_OFF);
-      mdelay(10);
-      //reset after power on
-      vfe_gpio_write(sd,RESET,CSI_RST_OFF);
-      mdelay(30);
-      */
-      //remember to unlock i2c adapter, so the device can access the i2c bus again
-      cci_unlock(sd);  
-      break;
+			usleep_range(7000,8000);
+			vfe_gpio_write(sd,PWDN,CSI_GPIO_LOW); 
+			usleep_range(10000,12000); 
+			//reset on io
+			vfe_gpio_write(sd,RESET,CSI_GPIO_LOW);
+			usleep_range(20000,22000);
+			vfe_gpio_write(sd,RESET,CSI_GPIO_HIGH);
 
-	  
-    case CSI_SUBDEV_PWR_OFF:
-      vfe_dev_dbg("CSI_SUBDEV_PWR_OFF!\n");
-      //make sure that no device can access i2c bus during sensor initial or power down
-      //when using i2c_lock_adpater function, the following codes must not access i2c bus before calling i2c_unlock_adapter
-      cci_lock(sd);
-
-      vfe_gpio_set_status(sd,PWDN,1);//set the gpio to output
-      vfe_gpio_set_status(sd,RESET,1);//set the gpio to output
-    //  vfe_gpio_write(sd,RESET,CSI_RST_ON);  
-     // vfe_gpio_write(sd,PWDN,CSI_STBY_ON);
-
-
-      //inactive mclk before power off
-      
-
-	  
-      //power supply off
-      vfe_gpio_write(sd,POWER_EN,CSI_PWR_OFF);
-      //vfe_set_pmu_channel(sd,AFVDD,OFF);
-       vfe_set_pmu_channel(sd,IOVDD,OFF);
-      vfe_set_pmu_channel(sd,DVDD,OFF);
-      vfe_set_pmu_channel(sd,AVDD,OFF);
-      vfe_set_mclk(sd,OFF);
-       
-	  
-      //set the io to hi-z
-      vfe_gpio_set_status(sd,RESET,0);//set the gpio to input
-      vfe_gpio_set_status(sd,PWDN,0);//set the gpio to input
-      //remember to unlock i2c adapter, so the device can access the i2c bus again
-      cci_unlock(sd);  
-      break;
-    default:
-      return -EINVAL;
-  }   
+			vfe_dev_dbg("CSI_SUBDEV_STBY_OFF!\n");
+			cci_lock(sd);
+			vfe_set_mclk_freq(sd,MCLK);
+			vfe_set_mclk(sd,ON);
+			usleep_range(10000,12000);
+			vfe_gpio_write(sd,PWDN,CSI_GPIO_LOW);
+			usleep_range(10000,12000);
+			ret = sensor_s_sw_stby(sd, CSI_GPIO_LOW);
+			if(ret < 0)
+				vfe_dev_err("soft stby off falied!\n");
+			printk("soft stby off..................................!");
+			cci_unlock(sd);
+			break;
+		case CSI_SUBDEV_PWR_OFF:
+			vfe_dev_dbg("CSI_SUBDEV_PWR_OFF!\n");
+			cci_lock(sd);
+			vfe_gpio_set_status(sd,PWDN,1);//set the gpio to output
+			vfe_gpio_set_status(sd,RESET,1);//set the gpio to output
+			vfe_gpio_write(sd,RESET,CSI_GPIO_LOW);  
+			vfe_gpio_write(sd,PWDN,CSI_GPIO_HIGH);
+			//inactive mclk before power off
+			vfe_set_mclk(sd,OFF);
+			//power supply off
+			vfe_set_pmu_channel(sd,AFVDD,OFF);
+			vfe_set_pmu_channel(sd,DVDD,OFF);
+			vfe_gpio_write(sd,POWER_EN,CSI_GPIO_LOW);
+			vfe_set_pmu_channel(sd,AVDD,OFF);
+			vfe_set_pmu_channel(sd,IOVDD,OFF);
+			//set the io to hi-z
+			vfe_gpio_set_status(sd,RESET,0);//set the gpio to input
+			vfe_gpio_set_status(sd,PWDN,0);//set the gpio to input
+			vfe_gpio_set_status(sd,POWER_EN,0);//set the gpio to input
+			cci_unlock(sd);
+			break;
+		default:
+			return -EINVAL;
+	}
 
   return 0;
 }

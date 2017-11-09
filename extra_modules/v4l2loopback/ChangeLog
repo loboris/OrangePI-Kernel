@@ -1,0 +1,414 @@
+v4l2loopback (0.9.1) unstable; urgency=medium
+
+  * Fixed module version
+
+ -- IOhannes m zmölnig (Debian/GNU) <umlaeute@debian.org>  Wed, 03 Jun 2015 19:47:23 +0200
+
+v4l2loopback (0.9.0) unstable; urgency=medium
+
+  [ IOhannes m zmölnig ]
+  * formats
+    * support more formats
+    * support compressed formats
+    * move formats-enumeration to separate file
+    * tools to implement missing formats
+  * controls
+    * disable deprecated vidioc_*ctrl callbacks
+    * register custom-controls
+    * use ctrl_config information in (deprecated) queryctrl
+  * fixed bugs
+    * used static code analysis to find more bugs
+    * more error checking
+    * check timeperframe before setting it (Closes: #61)
+    * make MAX_DEVICES/TIMEOUT/BUFFERS settable during build-process (Closes: #55)
+    * check for errors returned by get_capture_buffer()
+    * check whether there is at least 1 requestbuffer
+    * unsigned comparision against <0
+    * avoid setting b->count to negative/null
+    * ...
+  * fixed typos
+  * code formatting
+  * standards compliancy
+    * standard-conformant bus_info
+    * pretend to not support {G,S,ENUM}_{IN,OUT}PUT depending on state
+    * only pretend to not support IN/OUTPUT enumeration in exclusive-caps mode
+  * test programs
+    * for (de)queuing buffers
+    * for writing interlaced video
+  * compatibility with newer kernels
+  * compatibility with older kernels
+  * Updated documentation
+  * Removed GFDL document
+    * note where to get API documentation
+
+  [ tatokis ]
+  * Updated v4l2loopback.c to compile on >= 3.18 kernel
+
+  [ tz ]
+  * add ondemandcam
+
+  [ Yusuke Ohshima ]
+  * Fix issue #79
+
+  [ Tasos Sahanidis ]
+  * Fix for kernel 4.0
+
+ -- IOhannes m zmölnig <zmoelnig@umlaeute.mur.at>  Tue, 02 Jun 2015 19:58:39 +0200
+
+v4l2loopback (0.8.0) unstable; urgency=medium
+
+  [ Dmitry Eremin ]
+  * Add DKMS support.
+
+  [ Angus McInnes ]
+  * Make vidioc_g_fmt_out not change the format
+  * Set correct output buffer type in vidioc_dqbuf
+
+  [ Javier Infante ]
+  * Added card_labels option when loading module.
+
+  [ IOhannes m zmölnig ]
+  * renamed 'card_labels' to 'card_label'
+  * removed '-e' flag from call to 'depmod' (needs '-E' or '-F')
+  * auto-detect new version
+  * auto-update dkms.conf to new version
+
+ -- IOhannes m zmölnig <zmoelnig@iem.at>  Tue, 10 Dec 2013 18:12:15 +0100
+
+v4l2loopback (0.7.1) unstable; urgency=low
+
+  [ Aidan Thornton ]
+  * Linux 3.11 compatibility fix
+
+  [ IOhannes m zmölnig ]
+  * trying to keep pre-2.6.29 compatibility
+
+ -- IOhannes m zmoelnig (gpg-key at iem) <zmoelnig@iem.at>  Mon, 16 Sep 2013 09:55:51 +0200
+
+v4l2loopback (0.7.0) unstable; urgency=low
+
+  [ IOhannes m zmölnig ]
+  * don't implement STD-ioctls
+  * Revert "dummy audio ioctl's that return EINVAL"
+  * disable more STD-stuff based on V4L2LOOPBACK_WITH_STD
+  * don't announce all caps capabilities
+  * only announce capture/output capabilities if possible
+  * 'exclusive_caps' parameter to control caps announcment
+  * avoid duplicate setting of cardname
+  * break lines
+  * remove commented out code
+  * updated AUTHORS information
+  * fixed ChangeLog for 0.6.1
+  * updated NEWS for last releases
+
+  [ Anatolij Gustschin ]
+  * fix missing spin lock init
+  * add newlines to debug statements
+
+  [ Hans Verkuil ]
+  * reformatting to kernel-standards
+
+ -- IOhannes m zmoelnig (gpg-key at iem) <zmoelnig@iem.at>  Fri, 07 Jun 2013 11:24:34 +0200
+
+v4l2loopback (0.6.3) unstable; urgency=low
+
+  [ Ted Mielczarek ]
+  * Fill in the "v4l2_capability::bus_info" field (Closes: #30)
+
+  [ IOhannes m zmölnig ]
+  * make "v4l2_capability::card" unique per device (Closes: #37)
+  * fill in "video_device::vfl_dir" field on newer kernels (Closes: #35)
+  * always provide format-string when using printf()
+  * fixing update-changelog script
+
+ -- IOhannes m zmoelnig (gpg-key at iem) <zmoelnig@iem.at>  Tue, 05 Feb 2013 10:03:28 +0100
+
+v4l2loopback (0.6.2) unstable; urgency=low
+
+  [ IOhannes m zmölnig ]
+  * provide our own v4l2l_vzalloc
+  * added missing includes
+  * create unique names for the various devices
+  * more verbose debugging output when capture DQBUF fails
+
+  [ Anton Novikov ]
+  * make v4l2loopback.ko a PHONY target
+  * restarting-writer.sh runs on Ubuntu 11.10
+  * warning about disabled timeout when setting image
+  * readpos2index -> bufpos2index
+  * test different queue-sizes in restarting-writer.sh
+  * fix buffer indices before dev->used_buffers update
+  * fix ctl script (was hardcoded /dev/video0)
+
+  [ yukkeorg ]
+  * Fix error on compile in Linux kernel 3.6.1.
+
+ -- IOhannes m zmoelnig <zmoelnig@umlaeute.mur.at>  Tue, 23 Oct 2012 14:38:02 +0200
+
+v4l2loopback (0.6.1) UNRELEASED; urgency=low
+
+  [ IOhannes m zmoelnig ]
+  * Makefile fixes for debian
+
+ -- IOhannes m zmoelnig (gpg-key at iem) <zmoelnig@iem.at>  Fri, 27 Apr 2012 17:22:25 +0200
+
+v4l2loopback (0.6.0) UNRELEASED; urgency=low
+
+  [ IOhannes m zmölnig ]
+  * added direct link to wiki
+  * fixed typos
+  * check for (devices<0) rather than (devices==-1)
+
+  [ Anton Novikov ]
+  * add .gitignore files
+  * add 'format' sysfs attr
+  * remove 'fourcc' sysfs attr
+  * 'keep_format' ctrl
+  * set_timeperframe(), dev->frame_jiffies
+  * 'sustain_framerate' ctrl
+  * add examples/restarting-writer.sh
+  * reset write_position only when !ready_for_capture
+  * handle arbitrary output QBUF index order
+  * 'timeout' ctrl
+  * add ability to do i/o on placeholder picture buf
+  * add v4l2loopback-ctl script
+  * installing v4l2loopback-ctl
+  * fix dequeuing unused buffers
+  * timeout_image_io cleaner memory handling
+  * some documentation on controls
+  * some v4l2loopback-ctl syntax&doc tweaks
+
+  [ IOhannes m zmölnig ]
+  * moved utility into utils/
+  * Updated copyright notice
+  * use max image size to prevent insane allocations
+  * in-code documentation of the format string
+  * fixed description of 'debug' option
+  * fixed closing comment
+  * allow to set the max.framesize via module parameters
+  * renamed 'v4l2loopback' target to 'v4l2loopback.ko'
+  * added install-utils target
+
+  [ Anton Novikov ]
+  * script bugfix
+  * v4l2loopback-ctl set-fps
+  * more README
+
+  [ IOhannes m zmölnig ]
+  * initialize list in all cases
+  * notes on how to do kernel-debugging
+  * when dying, write to stderr
+  * check for applications before using them
+  * fix usage/version to make it fit for help2man
+  * manpage for v4l2loopback-ctl
+  * placeholder
+  * simplified description
+  * build and install manpages
+  * deleted manage (it's generated automatically)
+  * updated in-module AUTHORs
+  * debugging printout
+  * don't try to force a given format
+  * clarify README about default device in ./test
+
+ -- IOhannes m zmoelnig (gpg-key at iem) <zmoelnig@iem.at>  Fri, 27 Apr 2012 09:29:52 +0200
+
+v4l2loopback (0.5.0) UNRELEASED; urgency=low
+
+  [ IOhannes m zmölnig ]
+  * more (and better) debugging output
+  * stefan diewald's ENUM_FRAMESIZES fix
+  * simplifified framesize enumeration
+  * stefan diewald's ENUM_FRAMEINTERVAL implementations
+  * stefan diewald's buffer request logic
+  * added Stefan Diewald to the authors
+  * use sudo to rmmod/insmod kernel modules in Makefile
+  * use unlocked_ioctl as suggested by salsaman
+  * provide macros to simplify sysfs attrfile creation
+  * added deviceattributes
+  * implemented "video_nr" parameter to manually force device IDs
+  * dummy audio ioctl's that return EINVAL
+  * better output enumeration/format handling
+  * trying to improve handling of std's
+  * improve readability of vidioc_g_output
+  * added note about video_nr param
+  * fixed memleaks
+  * allow per-device "max_openers" settings
+  * warn if illegal number of max_openers is requested
+  * prefix posts with "v4l2loopback"
+
+  [ IOhannes m zmoelnig ]
+  * simplistic ChangeLog generator
+
+ -- zmoelnig <zmoelnig@umlautO.umlaeute>  Tue, 27 Dec 2011 19:01:25 +0100
+
+v4l2loopback (0.4.1) UNRELEASED; urgency=low
+
+  [ IOhannes m zmölnig ]
+  * yuv4mpeg producer to be used in conjunction with mplayer
+  * added yuv4mpeg_to_v4l2 to the build targets
+  * simplified Makefile; added clean target
+  * protect newer pixel formats
+  * fixed preprocessor expansion on linux<2.6.32
+  * made it compile on 2.6.28 and 2.6.27
+  * <=2.6.27 definitely won't work
+  * allow S_PARM for fps
+  * renamed opener->position to opener->read_position
+  * added dummy VIDIOC_QUERYCTRL implementation (fix for linux-3.1)
+
+ -- IOhannes m zmoelnig (gpg-key at iem) <zmoelnig@iem.at>  Thu, 24 Nov 2011 18:11:01 +0100
+
+v4l2loopback (0.4.0) UNRELEASED; urgency=low
+
+  [ IOhannes m zmölnig ]
+  * default debug-level should be 0
+  * cleanup version confusion
+  * changed version to 0.3.0
+  * updated README to mention Debian packages
+  * better internal format representation (as found in bttv-drivers) - still unused
+  * trying to support I420 --- might be very unstable right now
+  * dummy Makefile to allow "make"
+  * allow to set device from cmdline
+  * en/disable the readback test using defines
+  * use FRAME_SIZE throughout
+  * more experiments
+  * more debugging messages
+  * added rule to autoload the new v4l2loopback device
+  * rewrote most of the mmap part in order to support I420
+  * cleanup to make it C90 compliant again
+  * reordered formats a bit to make better default choices...
+  * replace vloopback by v4l2loopback to avoid confusion
+  * cleaned up code
+  * properly initialize the timestampe in order to guarantee a monotic series
+  * updated copyright
+  * bumped to version 0.4.0
+
+ -- IOhannes m zmoelnig (gpg-key at iem) <zmoelnig@iem.at>  Tue, 29 Mar 2011 12:54:23 +0200
+
+v4l2loopback (0.3) UNRELEASED; urgency=low
+
+  [ IOhannes m zmölnig ]
+  * note on why gstreamer v4l2sink fails to write to such a device
+  * enum_framesizes and enum_fmt_caps
+  * hmm, this makes it more crashy than better
+  * enable additional ioctls (eg. enum_output)
+  * fixed typo: USAGE instead of USEAGE
+  * remove stray #error
+  * gcode reorganization; uniform comments
+  * experiments with returning 0-size
+  * offline documentation for v4l2
+  * allow all kinds of formats during negotiation
+  * comment on which fields to set
+  * better support for setting formats
+  * add note about using application's bytesperline
+  * set type to WRITER when caller calls enum_fmt_out
+  * removed TODO as it has been done already
+  * indentation
+  * hopefully a bit more intelligent buffer-reallocation strategy
+  * extra safety checks
+  * print fourcc in fmt-enum
+  * fallback formats for try_fmt_out
+  * nicer format descriptions
+  * use defines for size-limits
+  * return EBUSY when trying to set fmt in CAPTURE mode when not ready
+  * properly implement querycap
+  * bytes_used in the mmap may be smaller than the page-size
+  * some dummy functions for video-std settings
+  * debug-level: 1
+  * terminate function call with ";"
+  * getting rid of MEMLEAK warning (should be fixed now)
+  * calculate bytesperline
+  * only return dummy-format with G_FMT[out] when none has been set
+  * nicer debugging
+  * disable OVERLAY dummy
+  * return 0-sized image by default
+  * default max_buffers_number is 8
+  * getting rid of my prefix
+  * pushed to version 0.0.2
+  * pumped to version 0.3
+
+ -- IOhannes m zmoelnig (gpg-key at iem) <zmoelnig@iem.at>  Sun, 10 Oct 2010 21:12:38 +0200
+
+v4l2loopback (0.2) UNRELEASED; urgency=low
+
+  [ IOhannes m zmölnig ]
+  * acces /dev/video0
+  * variable number of pipes
+  * nicer printout
+  * proper cleanup
+  * renamed "pipes" to "devices"
+  * bumped version; added meself as co-author
+  * removed files removed by "debian/rules clean"
+  * removed examples
+  * fixed debian/control debian/rules
+  * postinst stuff
+  * moved example into separate folder
+  * MakefileS need not be executable
+  * README, COPYING, AUTHORS
+  * re-version to 0.2
+  * updated README
+  * added Vasily Levin to the authors
+  * removed debian stuff
+  * added a README for the test
+  * added vasily.levin to the authors
+  * included linux/slab.h
+  * license issues: this module is GPLv2
+  * added meself into the copyright header
+
+ -- IOhannes m zmoelnig (gpg-key at iem) <zmoelnig@iem.at>  Sun, 10 Oct 2010 21:09:43 +0200
+
+v4l2loopback (0.1) UNRELEASED; urgency=low
+
+  [ gorinich.zmey ]
+  * initial
+  * first approach
+  * removed autogenerated file
+  * temproraly removed fps control and input from stdin handling
+  * removed irrelevant changelog, changed readme
+  * forgotten changes applued
+  * modules.order delete
+  * cleaned the mess with git-svn
+  * added test file
+  * added VIDIOC_G_PARM call
+  * format handling improvment, current solution is a stub
+  * temporarly removed mmap to keep code simple
+  * compile fix
+  * poll added, streaming started
+  * small test refine
+  * enum_input added
+  * basic streaming, polish needed
+  * first streaming working, mplayer gots a picture, yet crappy
+  * readme add
+  * readme rewrite
+  * readme additions
+  * mutex add
+  * skype working
+  * queue introduction, next step queue remove
+  * first run is OK already
+  * queues debugged
+  * halfway of massive inner structure changes
+  * compiles
+  * pre multireader
+  * style for linux kernel
+  * indent
+  * 80 width
+  * module name changed and debianize start
+  * debian
+  * 2.6.28 support
+  * almost works, just one bug left
+  * debian
+  * bug with two and more openers fixed
+  * redebianized
+  * removed files
+  * license header add
+  * freeing of unitialized pointer fixed, added nonblocking IO
+  * sync with v4l-dvb tree
+  * review responce
+  * hans review
+  * test improvments by Antonio Ospite
+  * removed header
+  * more small fixes
+
+  [ Scott Maines ]
+  * missing header for Fedora
+
+ -- IOhannes m zmoelnig (gpg-key at iem) <zmoelnig@iem.at>  Sun, 10 Oct 2010 21:01:50 +0200

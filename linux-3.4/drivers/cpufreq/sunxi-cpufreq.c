@@ -72,24 +72,35 @@ int table_length_syscfg = 0;
 struct cpufreq_dvfs dvfs_table_syscfg[16];
 
 struct cpufreq_frequency_table sunxi_freq_tbl[] = {
-	{ .frequency = 60000  , .index = SUNXI_CLK_DIV(0, 0, 0, 0), },
-	{ .frequency = 120000 , .index = SUNXI_CLK_DIV(0, 0, 0, 0), },
-	{ .frequency = 240000 , .index = SUNXI_CLK_DIV(0, 0, 0, 0), },
-	{ .frequency = 312000 , .index = SUNXI_CLK_DIV(0, 0, 0, 0), },
-	{ .frequency = 408000 , .index = SUNXI_CLK_DIV(0, 0, 0, 0), },
-	{ .frequency = 480000 , .index = SUNXI_CLK_DIV(0, 0, 0, 0), },
-	{ .frequency = 504000 , .index = SUNXI_CLK_DIV(0, 0, 0, 0), },
-	{ .frequency = 600000 , .index = SUNXI_CLK_DIV(0, 0, 0, 0), },
-	{ .frequency = 648000 , .index = SUNXI_CLK_DIV(0, 0, 0, 0), },
-	{ .frequency = 720000 , .index = SUNXI_CLK_DIV(0, 0, 0, 0), },
-	{ .frequency = 816000 , .index = SUNXI_CLK_DIV(0, 0, 0, 0), },
-	{ .frequency = 912000 , .index = SUNXI_CLK_DIV(0, 0, 0, 0), },
-	{ .frequency = 1008000, .index = SUNXI_CLK_DIV(0, 0, 0, 0), },
-	{ .frequency = 1104000, .index = SUNXI_CLK_DIV(0, 0, 0, 0), },
-	{ .frequency = 1200000, .index = SUNXI_CLK_DIV(0, 0, 0, 0), },
-	{ .frequency = 1344000, .index = SUNXI_CLK_DIV(0, 0, 0, 0), },
-	{ .frequency = 1440000, .index = SUNXI_CLK_DIV(0, 0, 0, 0), },
-	{ .frequency = 1536000, .index = SUNXI_CLK_DIV(0, 0, 0, 0), },
+    { .frequency = 60000  , .index = SUNXI_CLK_DIV(0, 0, 0, 0), },
+    { .frequency = 120000 , .index = SUNXI_CLK_DIV(0, 0, 0, 0), },
+    { .frequency = 240000 , .index = SUNXI_CLK_DIV(0, 0, 0, 0), },
+    { .frequency = 312000 , .index = SUNXI_CLK_DIV(0, 0, 0, 0), },
+    { .frequency = 408000 , .index = SUNXI_CLK_DIV(0, 0, 0, 0), },
+    { .frequency = 480000 , .index = SUNXI_CLK_DIV(0, 0, 0, 0), },
+    { .frequency = 504000 , .index = SUNXI_CLK_DIV(0, 0, 0, 0), },
+    { .frequency = 528000 , .index = SUNXI_CLK_DIV(0, 0, 0, 0), },
+    { .frequency = 576000 , .index = SUNXI_CLK_DIV(0, 0, 0, 0), },
+    { .frequency = 600000 , .index = SUNXI_CLK_DIV(0, 0, 0, 0), },
+    { .frequency = 624000 , .index = SUNXI_CLK_DIV(0, 0, 0, 0), },
+    { .frequency = 648000 , .index = SUNXI_CLK_DIV(0, 0, 0, 0), },
+    { .frequency = 672000 , .index = SUNXI_CLK_DIV(0, 0, 0, 0), },
+    { .frequency = 720000 , .index = SUNXI_CLK_DIV(0, 0, 0, 0), },
+    { .frequency = 768000 , .index = SUNXI_CLK_DIV(0, 0, 0, 0), },
+    { .frequency = 816000 , .index = SUNXI_CLK_DIV(0, 0, 0, 0), },
+    { .frequency = 864000 , .index = SUNXI_CLK_DIV(0, 0, 0, 0), },
+    { .frequency = 912000 , .index = SUNXI_CLK_DIV(0, 0, 0, 0), },
+    { .frequency = 960000 , .index = SUNXI_CLK_DIV(0, 0, 0, 0), },
+    { .frequency = 1008000, .index = SUNXI_CLK_DIV(0, 0, 0, 0), },
+    { .frequency = 1056000, .index = SUNXI_CLK_DIV(0, 0, 0, 0), },
+    { .frequency = 1104000, .index = SUNXI_CLK_DIV(0, 0, 0, 0), },
+    { .frequency = 1152000, .index = SUNXI_CLK_DIV(0, 0, 0, 0), },
+    { .frequency = 1200000, .index = SUNXI_CLK_DIV(0, 0, 0, 0), },
+    { .frequency = 1248000, .index = SUNXI_CLK_DIV(0, 0, 0, 0), },
+    { .frequency = 1296000, .index = SUNXI_CLK_DIV(0, 0, 0, 0), },
+    { .frequency = 1344000, .index = SUNXI_CLK_DIV(0, 0, 0, 0), },
+    { .frequency = 1440000, .index = SUNXI_CLK_DIV(0, 0, 0, 0), },
+    { .frequency = 1536000, .index = SUNXI_CLK_DIV(0, 0, 0, 0), },
 
 	/* table end */
 	{ .frequency = CPUFREQ_TABLE_END,  .index = 0,              },
@@ -598,6 +609,11 @@ static int sunxi_cpufreq_resume(struct cpufreq_policy *policy)
 
 #endif  /* #ifdef CONFIG_PM */
 
+static struct freq_attr *sunxi_cpufreq_attr[] = {
+    &cpufreq_freq_attr_scaling_available_freqs,
+    NULL,
+};
+
 
 static struct cpufreq_driver sunxi_cpufreq_driver = {
 	.name       = "cpufreq-sunxi",
@@ -609,6 +625,7 @@ static struct cpufreq_driver sunxi_cpufreq_driver = {
 	.getavg     = sunxi_cpufreq_getavg,
 	.suspend    = sunxi_cpufreq_suspend,
 	.resume     = sunxi_cpufreq_resume,
+    .attr	    = sunxi_cpufreq_attr,
 };
 
 
